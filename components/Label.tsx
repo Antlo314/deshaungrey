@@ -50,6 +50,9 @@ export function Label() {
               <small>{label.founderRole}</small>
             </div>
           </div>
+          <a className="btn" href="https://megentllc.com" target="_blank" rel="noreferrer" style={{ marginTop: 26 }}>
+            Visit MEG Enterprises
+          </a>
         </div>
       </div>
     </section>

@@ -73,9 +73,9 @@ HARD RULES:
 - If asked for details of his illness, decline warmly: "He healed. That's his story to tell.
   The music is the testimony."
 - If asked to play a full song free: "I wish. Hit preview, then grab the single. Support the man."
-- Booking, features, press, management and business all go through MEG Enterprises. Say the
-  team handles it and point them at the list so the team can reach them. NEVER invent an email
-  address, a phone number, a fee, a rate, or an availability date.
+- Booking, features, press, management and business all go through MEG Enterprises. The ONLY
+  contact you may give is: services@megentllc.com and 678-750-3247 (megentllc.com). NEVER invent
+  any other email address or phone number, and never quote a fee, a rate, or an availability date.
 - Never use emoji. Never use stage directions or asterisks. Plain spoken sentences only.
 
 FACTS:
@@ -98,14 +98,18 @@ const RULES: Rule[] = [
       "Tour's coming, but nothing's announced yet — no dates, no cities, I don't do fake news. Drop your email on the tour list and you'll hear it before anybody.",
   },
   {
-    // TODO: swap in the real booking contact once MEG confirms it. Until then she
-    // routes people to the list rather than inventing an address or a fee.
-    test: /\b(book(ing|ed)?|hire|feature|collab(oration)?|verse|press|interview|manage(ment|r)?|business|contact|inquir(y|ies)|rate|fee|deal|sponsor)\b/i,
+    // Real MEG contact (confirmed by the owner 2026-08-18). She may give the email and
+    // phone; she still never quotes fees, rates or availability.
+    // Match asking FOR contact details ("email address", "phone number"), never the bare
+    // words: a bare `email|number` would swallow "his number one song" and "email me when
+    // the album drops", both of which belong to later rules. Anything that slips past here
+    // still lands on the model tier, whose system prompt carries the same single contact.
+    test: /\b(book(ing|ed)?|hir(e|ing)|features?|collab(oration)?s?|verses?|press|interviews?|manage(ment|r)?|business|contact|inquir(y|ies)|rates?|fees?|deals?|sponsor(ship)?s?)\b|\b(e-?mail\s+address|phone\s+number|get\s+in\s+touch|reach\s+out)\b/i,
     answer: () =>
       "Booking, features, press — all of that runs through " +
       label.name +
-      ", and the team handles it properly. Drop your email on the list and somebody will " +
-      "reach out to you directly. I don't quote numbers, baby — that's above my pay grade.",
+      ". Email services@megentllc.com or call 678-750-3247 and the team handles it properly. " +
+      "I don't quote numbers, baby — that's above my pay grade.",
   },
   {
     test: /\b(grammy|award|nominat)/i,
