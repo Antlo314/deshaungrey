@@ -1,4 +1,4 @@
-import { mkdir, readFile, rename, writeFile } from "fs/promises";
+import { mkdir, readFile, rename, stat, writeFile } from "fs/promises";
 import path from "path";
 import type { Doc, Kind, ListOpts, Store } from "./types";
 
@@ -12,7 +12,7 @@ import type { Doc, Kind, ListOpts, Store } from "./types";
 type Table = Record<string, Doc>;
 type DbFile = Partial<Record<Kind, Table>>;
 
-const g = globalThis as unknown as { __megJson?: { file: string; data: DbFile | null; loading: Promise<DbFile> | null; writing: Promise<void> } };
+const g = globalThis as unknown as { __megJson?: { file: string; data: DbFile | null; mtime: number; loading: Promise<DbFile> | null; writing: Promise<void> } };
 
 function fileFor(): string {
   if (process.env.MEG_DB_FILE) return process.env.MEG_DB_FILE;
@@ -21,20 +21,27 @@ function fileFor(): string {
 }
 
 function state() {
-  if (!g.__megJson) g.__megJson = { file: fileFor(), data: null, loading: null, writing: Promise.resolve() };
+  if (!g.__megJson) g.__megJson = { file: fileFor(), data: null, mtime: 0, loading: null, writing: Promise.resolve() };
   return g.__megJson;
 }
 
 async function load(): Promise<DbFile> {
   const s = state();
-  if (s.data) return s.data;
   if (s.loading) return s.loading;
+  // Re-read when the file changed underneath us (hand edits, another process).
+  if (s.data) {
+    const m = await stat(s.file).then((st) => st.mtimeMs).catch(() => 0);
+    if (m === s.mtime) return s.data;
+  }
   s.loading = (async () => {
     try {
       const raw = await readFile(s.file, "utf8");
       s.data = JSON.parse(raw) as DbFile;
+      s.mtime = await stat(s.file).then((st) => st.mtimeMs).catch(() => 0);
     } catch {
-      s.data = {};
+      s.data = s.data ?? {};
+    } finally {
+      s.loading = null;
     }
     return s.data!;
   })();
@@ -50,6 +57,7 @@ async function persist(): Promise<void> {
     const tmp = `${s.file}.${process.pid}.${Date.now()}.tmp`;
     await writeFile(tmp, JSON.stringify(data, null, 1), "utf8");
     await rename(tmp, s.file);
+    s.mtime = await stat(s.file).then((st) => st.mtimeMs).catch(() => 0);
   });
   return s.writing;
 }

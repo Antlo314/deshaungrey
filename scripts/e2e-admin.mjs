@@ -22,6 +22,7 @@ const OWNER = { name: "E2E Owner", email: "e2e-owner@example.test", password: "l
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1.25 });
 const page = await ctx.newPage();
+page.on("dialog", (d) => d.accept()); // confirm() on delete buttons
 const errors = [];
 page.on("pageerror", (e) => errors.push(`pageerror: ${e.message}`));
 page.on("console", (m) => m.type() === "error" && !m.text().includes("404") && errors.push(`console: ${m.text()}`));
@@ -132,14 +133,14 @@ await shot("submission-detail");
 
 // 8. settings → contact email shows in footer
 await page.goto(`${base}/admin/settings`, { waitUntil: "networkidle" });
-await page.fill('input[name="contactEmail"]', "info@megentllc.com");
+await page.fill('input[name="contactEmail"]', "services@megentllc.com");
 await page.fill('input[name="announcement"]', "E2E announcement bar");
 await page.click('form.f button[type="submit"]:has-text("Save settings")');
 await page.waitForSelector(".msg", { timeout: 15000 });
 step("settings saved ✓");
 await shot("settings");
 await pub.goto(`${base}/`, { waitUntil: "networkidle" });
-if (!(await pub.locator("text=info@megentllc.com").count())) throw new Error("contact email not on public site");
+if (!(await pub.locator("text=services@megentllc.com").count())) throw new Error("contact email not on public site");
 if (!(await pub.locator(".announce").count())) throw new Error("announcement bar missing");
 step("settings reflected publicly ✓");
 // clear announcement so the site is clean afterwards
@@ -167,6 +168,21 @@ await mp.click(".adm-menu-btn");
 await mp.waitForTimeout(500);
 await mp.screenshot({ path: join(out, "admin-phone-menu.jpg"), quality: 80, type: "jpeg" });
 await m.close();
+
+// 10b. clean up the rows this test created (owner deletes)
+await page.goto(`${base}/admin/press`, { waitUntil: "networkidle" });
+await page.click("text=E2E — test announcement");
+await page.waitForURL(/\/admin\/press\//);
+await Promise.all([page.waitForURL(/\/admin\/press$/), page.click('button.abtn.danger')]);
+await page.goto(`${base}/admin/inbox?status=all`, { waitUntil: "networkidle" });
+await page.click("text=Test Booker");
+await page.waitForURL(/\/admin\/inbox\//);
+await Promise.all([page.waitForURL(/\/admin\/inbox$/), page.click('button.abtn.danger')]);
+await page.goto(`${base}/admin/submissions?status=all`, { waitUntil: "networkidle" });
+await page.click("text=Test Artist");
+await page.waitForURL(/\/admin\/submissions\//);
+await Promise.all([page.waitForURL(/\/admin\/submissions$/), page.click('button.abtn.danger')]);
+step("test rows cleaned up ✓");
 
 // 11. sign out
 await page.evaluate(() => document.querySelector('.adm-side form').requestSubmit());
