@@ -206,7 +206,7 @@ export function AshWidget() {
     const el = document.createElement("elevenlabs-convai");
     el.setAttribute("signed-url", signedUrl);
     el.setAttribute("variant", "full");
-    el.setAttribute("avatar-image-url", "/media/ash/ash-portrait.jpg");
+    // no avatar image on purpose — ASH is an orb, never a face
     el.setAttribute("avatar-orb-color-1", "#C9A46A");
     el.setAttribute("avatar-orb-color-2", "#8B1E3F");
     el.setAttribute("action-text", "Talk to ASH");
@@ -253,7 +253,9 @@ export function AshWidget() {
       {open ? (
         <div className="ash-panel" role="dialog" aria-label="ASH" data-lenis-prevent>
           <div className="ash-head">
-            <img src="/media/ash/ash-portrait-m.jpg" alt="" />
+            <span className="orb-sm" aria-hidden>
+              <span className="orb" />
+            </span>
             <div className="who">
               <div className="ash-name">ASH</div>
               <div className={`ash-status ${live ? "live" : ""}`}>
@@ -323,12 +325,7 @@ export function AshWidget() {
         <span className="live" aria-hidden />
         <span className="conic" aria-hidden />
         <span className="core">
-          <img
-            src="/media/ash/ash-portrait-m.jpg"
-            srcSet="/media/ash/ash-portrait-m.jpg 400w, /media/ash/ash-portrait.jpg 1024w"
-            sizes="76px"
-            alt=""
-          />
+          <span className="orb" />
         </span>
         <span className="x" aria-hidden>
           <Icon.close style={{ width: 16, height: 16 }} />

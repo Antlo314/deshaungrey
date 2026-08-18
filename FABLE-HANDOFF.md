@@ -61,7 +61,15 @@ A palette pass is a `:root` edit. Keep gold as metal, not neon.
 
 ## ASH (`components/AshWidget.tsx`)
 
-- Orb: conic gold/burgundy ring, twin halos, **audio-reactive live ring** (`--amp` from an analyser on the hello/timeout clips). Open state shows an ×.
+- **ASH has no face.** She is an animated sphere — `.orb` in `globals.css`: a lit
+  radial-gradient ball (gold specular → gold → burgundy → void rim), a rotating
+  conic "liquid" swirl on `screen` blend, a blurred specular highlight, and an idle
+  breathe. Speaking speeds the swirl and drives scale/opacity from `--amp`.
+  The same `.orb` renders at 44px as `.orb-sm` in the panel header.
+  **Never reintroduce a portrait**: no `avatar-image-url` on the ElevenLabs element,
+  no photo in the orb. The old persona portrait is archived in
+  `private/masters/originals/ash__*` and is no longer served.
+- Orb chrome: conic gold/burgundy ring, twin halos, **audio-reactive live ring** (`--amp` from an analyser on the hello/timeout clips). Open state shows an ×.
 - Teaser bubble once per session (`sessionStorage.dg_ash_tease`) at ~5s.
 - Panel: avatar header + status pill, typewriter line, **12-pip quota meter** (functional — reads `/api/voice/quota`), suggestion chips (Play Show Me / Play WTDA / merch / tour / about — "Play" chips scroll and press the real play button), Talk live → `/api/voice/signed-url` → mounts `elevenlabs-convai`. Flow and quota logic are unchanged from the original build.
 
@@ -82,11 +90,46 @@ A palette pass is a `:root` edit. Keep gold as metal, not neon.
 - **Socials** — `lib/catalog.ts` → `socials` are `"#"`.
 - Stripe: `STRIPE_SECRET_KEY` in `.env.local`. Checkout already posts line items from the catalog.
 - Printful: set `printfulProductId` on each merch row + `PRINTFUL_API_KEY`.
-- ASH live voice: create the agent from `VOICE.md`, set `ELEVENLABS_AGENT_ID` and `ELEVENLABS_VOICE_ID`.
+- ASH live voice: create the **Conversational Agent** from `VOICE.md` in the ElevenLabs
+  dashboard and set `ELEVENLABS_AGENT_ID`. (The API key can do TTS and Voice Design but
+  cannot create agents.) Until it is set, the widget falls back to the cached clips and
+  the `agent_unwired` copy — it never dead-ends.
+
+## ASH's voice
+
+`scripts/design-ash-voice.mjs` designs her voice from the written description, saves
+every preview to `private/masters/ash-voice/`, creates the voice on the ElevenLabs
+account, writes `ELEVENLABS_VOICE_ID` into `.env.local`, and re-renders the cached
+`public/audio/ash/hello.mp3` + `timeout.mp3`.
+
+    node scripts/design-ash-voice.mjs                 # design + create + wire up
+    node scripts/design-ash-voice.mjs --previews-only # just audition
+    node scripts/design-ash-voice.mjs --use 1         # build from a different take
+
+Direction (also in `VOICE.md`): young African-American woman, early twenties, rich warm
+smoky lower register with a breathy edge, modern Atlanta cadence, playful and a little
+flirtatious but always classy. Settings: stability 0.40, similarity 0.85, style 0.45,
+speaker boost on.
 
 ## Imagery — retouch + 4K pipeline
 
-- **Crosses removed** from the hero wall, the Show Me plate (wall + framed print), and the framed print in the Show Me **cover** (`scripts/retouch.py`, OpenCV column/row reconstruction — no generative fill, faces untouched). Untouched originals archived at `private/masters/originals/` (never public).
+- **Crosses removed** from the hero wall, the Show Me plate (wall + framed print), and the
+  framed print in the Show Me **cover** — `scripts/retouch.py`. No generative fill; faces
+  are never written to. Three stages:
+  1. **Multigrid harmonic (Laplace) fill** — solves the membrane equation inside the mask
+     with the surrounding pixels as an exact Dirichlet boundary. This is why there is no
+     visible rectangle: a 1-D per-column interpolation (the first attempt) left a flat
+     grey patch with hard edges and horizontal banding.
+  2. **Multiplicative seam profile** — these walls are vertical paneling, so a 1-D profile
+     over x sampled from clean donor rows in the *same columns* is broadcast down the fill,
+     keeping panel seams and grain continuous.
+  3. **Matched grain** — noise sigma measured off real wall nearby, so the patch is not
+     smoother than its surroundings. Smoothness is what reads as "off pixels".
+  Where the cross is occluded by a person (Show Me), `gold_mask()` finds the cross by hue
+  and refuses to write right of each row's right-most gold pixel, so the mask stops exactly
+  at his hairline. `*-mask.jpg` and `*-debug.jpg` proofs are written next to each output.
+  It reads the archived originals, so it is idempotent. Originals live in
+  `private/masters/originals/` (never public).
 - **Enhanced + resampled** (`scripts/enhance-4k.mjs`): clarity → Lanczos3 → micro-sharpen → gentle tone. Tiers: `name-4k.jpg` (3840 / 4096 wide), `name.jpg` (desktop), `name-m.jpg` (mobile). srcSets reference all three. `about/portrait.png` → `portrait(-4k|-m).jpg`.
 - Note: this is a high-quality resample, not generative AI upscaling — the image service had 0 credits. If you buy credits, `upscale_image` (4K) on the archived originals will add real detail; re-run `retouch.py` on the results first.
 - `hero.mp4` and `plates/show-me.mp4` were re-rendered from the cleaned 4K stills (1920×1080, 30fps, 6s, no audio).

@@ -42,7 +42,8 @@ export function Hero() {
 
       <div className="hero-copy">
         <p className="kicker dot hero-fade" style={{ ["--d" as string]: "0.35s" }}>
-          MEG Enterprises presents · World of Grey
+          <span>MEG Enterprises presents</span>
+          <span className="k2">World of Grey</span>
         </p>
         <h1 aria-label={artist.name}>
           <span className="row" aria-hidden>

@@ -1,115 +1,44 @@
 """
-Cross removal for hero + Show Me plate.
-Walls are vertical wood paneling, so each masked column is rebuilt from the
-rows just above/below the mask (preserves seams + spotlight falloff), then
-real high-frequency wall texture is layered back and the seam is feathered.
-Writes to private/masters/retouch/*.png at source resolution.
+Cross removal — hero plate, Show Me plate, Show Me cover.
+
+Reads the ARCHIVED ORIGINALS (private/masters/originals/) so it is idempotent and
+never double-processes. Writes to private/masters/retouch/, which enhance-4k.mjs
+then upscales.
+
+Algorithm (three stages, no generative fill — faces are never touched):
+
+  1. Harmonic (Laplace) fill, solved multigrid.
+     Solves the membrane equation inside the mask with the surrounding pixels as a
+     Dirichlet boundary. Because the boundary is satisfied exactly, there is no
+     rectangle edge, and because it is a true 2-D solve there is none of the
+     per-column banding a 1-D interpolation produces.
+
+  2. Seam profile, multiplicative.
+     These walls are vertical paneling, so their texture is nearly invariant in y:
+     a 1-D profile over x (seams + wood grain), sampled from clean donor rows in the
+     SAME columns, is broadcast down the fill. Multiplicative so seam contrast tracks
+     the local brightness instead of banding the shadows.
+
+  3. Matched grain, then a feathered composite.
+     Sensor noise sampled from real wall nearby, so the patch is not smoother than
+     its surroundings — smoothness is what reads as "off pixels".
 
 Run:  python scripts/retouch.py
 """
 import os
+
 import cv2
 import numpy as np
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PUB = os.path.join(ROOT, "public", "media")
+ORIG = os.path.join(ROOT, "private", "masters", "originals")
 OUT = os.path.join(ROOT, "private", "masters", "retouch")
 os.makedirs(OUT, exist_ok=True)
 
-
-def column_fill(img, mask, band=14, gap=6, hsmooth=4, side="both"):
-    """For each column with masked pixels, linearly interpolate between the
-    mean of `band` rows above / below the run (skipping `gap` rows adjacent to
-    the mask, which usually hold the object's shadow). Sample rows are lightly
-    smoothed horizontally so single-column outliers don't streak."""
-    src = img.astype(np.float32)
-    # horizontally smoothed copy for sampling (keeps panel seams, kills specks)
-    smooth = cv2.GaussianBlur(src, (0, 0), sigmaX=hsmooth, sigmaY=0.5)
-    out = src.copy()
-    h, w = mask.shape
-    for x in range(w):
-        col = mask[:, x]
-        if not col.any():
-            continue
-        ys = np.where(col > 0)[0]
-        runs = np.split(ys, np.where(np.diff(ys) > 1)[0] + 1)
-        for run in runs:
-            y0, y1 = run[0], run[-1]
-            top = smooth[max(0, y0 - gap - band):max(0, y0 - gap), x]
-            bot = smooth[min(h, y1 + 1 + gap):min(h, y1 + 1 + gap + band), x]
-            if len(top) == 0 and len(bot) == 0:
-                continue
-            a = top.mean(axis=0) if len(top) else bot.mean(axis=0)
-            b = bot.mean(axis=0) if len(bot) else top.mean(axis=0)
-            if side == "top":
-                b = a
-            elif side == "bottom":
-                a = b
-            n = y1 - y0 + 1
-            t = np.linspace(0, 1, n)[:, None]
-            # ease so the glow falls off like the original spotlight
-            t = t ** 1.15
-            out[y0:y1 + 1, x] = a * (1 - t) + b * t
-    return out
+rng = np.random.default_rng(7)
 
 
-def row_fill(img, mask, band=14, gap=4, side="both", vsmooth=4):
-    """Row-wise counterpart of column_fill: rebuild each masked row from the
-    columns just left/right of the run. side='left' uses only the left sample
-    (for when the right neighbour is a person, not wall)."""
-    src = img.astype(np.float32)
-    smooth = cv2.GaussianBlur(src, (0, 0), sigmaX=0.5, sigmaY=vsmooth)
-    out = src.copy()
-    h, w = mask.shape
-    for y in range(h):
-        row = mask[y]
-        if not row.any():
-            continue
-        xs = np.where(row > 0)[0]
-        runs = np.split(xs, np.where(np.diff(xs) > 1)[0] + 1)
-        for run in runs:
-            x0, x1 = run[0], run[-1]
-            left = smooth[y, max(0, x0 - gap - band):max(0, x0 - gap)]
-            right = smooth[y, min(w, x1 + 1 + gap):min(w, x1 + 1 + gap + band)]
-            a = left.mean(axis=0) if len(left) else right.mean(axis=0)
-            b = right.mean(axis=0) if len(right) else left.mean(axis=0)
-            if side == "left":
-                b = a
-            elif side == "right":
-                a = b
-            n = x1 - x0 + 1
-            t = np.linspace(0, 1, n)[None, :].T
-            out[y, x0:x1 + 1] = a * (1 - t) + b * t
-    return out
-
-
-def add_texture(filled, img, mask, src_rows, strength=0.7):
-    """Layer high-frequency wall grain back in. Texture is sampled from
-    `src_rows` (y0, y1) in the SAME columns as the mask and tiled vertically
-    only, so wood grain and panel seams stay continuous per column."""
-    y0, y1 = src_rows
-    patch = img[y0:y1].astype(np.float32)
-    hf = patch - cv2.GaussianBlur(patch, (0, 0), 2.5)   # fine grain only, no banding
-    hf = cv2.GaussianBlur(hf, (0, 0), 0.6)
-    # mirror-tile vertically so tile boundaries are continuous
-    hf = np.concatenate([hf, hf[::-1]], axis=0)
-    H, W = mask.shape
-    reps = int(np.ceil(H / hf.shape[0])) + 1
-    tiled = np.tile(hf, (reps, 1, 1))[:H, :W]
-    m = (mask > 0)[..., None]
-    soft = cv2.GaussianBlur(filled, (0, 0), 1.2)
-    return np.where(m, soft + tiled * strength, filled)
-
-
-def blend(img, filled, mask, feather=9):
-    m = cv2.GaussianBlur(mask.astype(np.float32) / 255.0, (0, 0), feather)
-    m = np.clip(m * 1.4, 0, 1)[..., None]  # keep the core fully replaced
-    core = (mask > 0)[..., None]
-    m = np.where(core, 1.0, m)
-    out = img.astype(np.float32) * (1 - m) + filled * m
-    return np.clip(out, 0, 255).astype(np.uint8)
-
-
+# ----------------------------------------------------------------- masks
 def poly_mask(shape, polys):
     m = np.zeros(shape[:2], np.uint8)
     for p in polys:
@@ -117,87 +46,214 @@ def poly_mask(shape, polys):
     return m
 
 
-def process(name, src, polys, tex_rows, extra=None, tex_strength=0.7):
-    """polys: list of (points, mode) where mode is 'v', 'h', 'h-left', 'h-right'."""
+def _kern(k):
+    return cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k * 2 + 1,) * 2)
+
+
+def gold_mask(img, box, dilate=5, close=7, clip_right=True):
+    """Auto-detect the gilt cross inside `box` by hue, solidify it, and dilate to
+    catch the anti-aliased fringe.
+
+    Where the cross is occluded by a person, the correct boundary is exactly the
+    person's silhouette — impossible to hand-trace reliably. `clip_right` therefore
+    refuses to write any pixel to the right of that row's right-most gold pixel, so
+    the mask stops at his hairline and never paints skin or hair.
+    """
+    x0, y0, x1, y1 = box
+    sub = img[y0:y1, x0:x1]
+    hsv = cv2.cvtColor(sub, cv2.COLOR_BGR2HSV)
+    H, S, V = hsv[..., 0], hsv[..., 1], hsv[..., 2]
+    core = (((H >= 8) & (H <= 38) & (S >= 45) & (V >= 55)).astype(np.uint8)) * 255
+
+    g = cv2.morphologyEx(core, cv2.MORPH_CLOSE, _kern(close))
+    cnts, _ = cv2.findContours(g, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    cv2.drawContours(g, cnts, -1, 255, -1)          # solid, including dark crevices
+    g = cv2.dilate(g, _kern(dilate))
+
+    if clip_right:
+        for row in range(g.shape[0]):
+            hits = np.where(core[row] > 0)[0]
+            g[row, (hits.max() + 1) if hits.size else 0:] = 0
+
+    m = np.zeros(img.shape[:2], np.uint8)
+    m[y0:y1, x0:x1] = g
+    return m
+
+
+def build_mask(img, remove, protect=(), grow=0, auto=()):
+    """Union of `remove` polygons and `auto` gold-detected boxes, minus `protect`."""
+    m = poly_mask(img.shape, remove)
+    if grow:
+        m = cv2.dilate(m, _kern(grow))
+    for box in auto:
+        m |= gold_mask(img, box)
+    if protect:
+        p = poly_mask(img.shape, protect)
+        m[p > 0] = 0
+    return m
+
+
+# ----------------------------------------------------------------- stage 1
+def _jacobi(f, unknown, iters):
+    """In-place Gauss-Seidel-ish Jacobi sweeps on the unknown pixels."""
+    u = unknown[..., None] if f.ndim == 3 else unknown
+    for _ in range(iters):
+        pad = cv2.copyMakeBorder(f, 1, 1, 1, 1, cv2.BORDER_REPLICATE)
+        avg = (pad[:-2, 1:-1] + pad[2:, 1:-1] + pad[1:-1, :-2] + pad[1:-1, 2:]) * 0.25
+        f = np.where(u, avg, f)
+    return f
+
+
+def laplace_fill(img, mask, levels=6, base_iters=90):
+    """Multigrid harmonic fill. Coarse levels carry the low frequencies cheaply,
+    fine levels sharpen the boundary match."""
+    src = img.astype(np.float32)
+    pyr_img, pyr_mask = [src], [(mask > 0)]
+    for _ in range(levels - 1):
+        small_img = cv2.pyrDown(pyr_img[-1])
+        small_mask = cv2.pyrDown(pyr_mask[-1].astype(np.float32)) > 0.02  # grow unknown
+        if min(small_img.shape[:2]) < 8:
+            break
+        pyr_img.append(small_img)
+        pyr_mask.append(small_mask)
+
+    # coarsest: seed unknown with the mean of the known pixels at that level
+    f = pyr_img[-1].copy()
+    m = pyr_mask[-1]
+    known = ~m
+    if known.any():
+        f[m] = pyr_img[-1][known].mean(axis=0)
+    f = _jacobi(f, m, base_iters * 6)
+
+    # refine down the pyramid
+    for lvl in range(len(pyr_img) - 2, -1, -1):
+        target, m = pyr_img[lvl], pyr_mask[lvl]
+        up = cv2.resize(f, (target.shape[1], target.shape[0]), interpolation=cv2.INTER_CUBIC)
+        f = np.where(m[..., None], up, target)  # known pixels are always the truth
+        f = _jacobi(f, m, base_iters * (2 if lvl else 4))
+    return f
+
+
+# ----------------------------------------------------------------- stage 2
+def seam_profile(img, donor_rows, sigma_x=9.0):
+    """1-D multiplicative texture over x (panel seams + vertical grain), averaged
+    over clean donor rows. Returns an array of shape (1, W, 3) centred on 1.0."""
+    y0, y1 = donor_rows
+    patch = img[y0:y1].astype(np.float32) + 1.0
+    base = cv2.GaussianBlur(patch, (0, 0), sigmaX=sigma_x, sigmaY=0.6)
+    ratio = patch / np.maximum(base, 1.0)
+    prof = ratio.mean(axis=0, keepdims=True)
+    return cv2.GaussianBlur(prof, (0, 0), sigmaX=0.8, sigmaY=0.01)
+
+
+def grain_sigma(img, rect):
+    """Per-channel noise sigma measured off a real, clean patch of the same wall."""
+    x0, y0, x1, y1 = rect
+    patch = img[y0:y1, x0:x1].astype(np.float32)
+    resid = patch - cv2.GaussianBlur(patch, (0, 0), 1.0)
+    return resid.reshape(-1, 3).std(axis=0)
+
+
+# ----------------------------------------------------------------- composite
+def composite(img, filled, mask, feather=2.5):
+    """Feathered blend. The interior is fully replaced; the feather only softens the
+    last couple of pixels, since the harmonic solve already matches the boundary."""
+    a = cv2.GaussianBlur((mask > 0).astype(np.float32), (0, 0), feather)[..., None]
+    out = img.astype(np.float32) * (1 - a) + filled * a
+    return np.clip(out, 0, 255).astype(np.uint8)
+
+
+def process(name, src, remove, donor_rows, grain_rect, protect=(), grow=2, auto=(),
+            seam_strength=1.0, grain_strength=1.0, extra=None):
     img = cv2.imread(src, cv2.IMREAD_COLOR)
     assert img is not None, src
-    filled = img.astype(np.float32).copy()
-    full = np.zeros(img.shape[:2], np.uint8)
-    for pts, mode in polys:
-        m = poly_mask(img.shape, [pts])
-        base = np.clip(filled, 0, 255).astype(np.uint8)  # later masks sample from earlier fills
-        if mode in ("v", "v-top", "v-bottom"):
-            f = column_fill(base, m, side={"v": "both", "v-top": "top", "v-bottom": "bottom"}[mode])
-        else:
-            side = {"h": "both", "h-left": "left", "h-right": "right"}[mode]
-            f = row_fill(base, m, side=side)
-        sel = (m > 0)[..., None]
-        filled = np.where(sel, f, filled)
-        full |= m
-    mask = full
-    filled = add_texture(filled, img, mask, tex_rows, strength=tex_strength)
-    out = blend(img, filled, mask)
+    mask = build_mask(img, remove, protect, grow, auto)
+
+    filled = laplace_fill(img, mask)
+
+    prof = seam_profile(img, donor_rows)
+    prof = 1.0 + (prof - 1.0) * seam_strength
+    filled = filled * prof                       # broadcast (1,W,3) down every row
+
+    sig = grain_sigma(img, grain_rect) * grain_strength
+    noise = rng.normal(0.0, 1.0, filled.shape).astype(np.float32)
+    noise = cv2.GaussianBlur(noise, (0, 0), 0.55)
+    noise /= max(noise.std(), 1e-6)
+    filled = filled + noise * sig
+
+    out = composite(img, filled, mask)
     if extra:
         out = extra(out)
-    dst = os.path.join(OUT, name)
-    cv2.imwrite(dst, out, [cv2.IMWRITE_PNG_COMPRESSION, 3])
-    # debug crop
+
+    cv2.imwrite(os.path.join(OUT, name), out, [cv2.IMWRITE_PNG_COMPRESSION, 3])
+
+    # side-by-side proof at 1:1
     ys, xs = np.where(mask > 0)
-    pad = 60
+    pad = 70
     y0, y1 = max(0, ys.min() - pad), min(img.shape[0], ys.max() + pad)
     x0, x1 = max(0, xs.min() - pad), min(img.shape[1], xs.max() + pad)
-    dbg = np.hstack([img[y0:y1, x0:x1], out[y0:y1, x0:x1]])
-    cv2.imwrite(os.path.join(OUT, name.replace(".png", "-debug.jpg")), dbg, [cv2.IMWRITE_JPEG_QUALITY, 90])
-    print("wrote", dst)
+    gap = np.zeros((y1 - y0, 8, 3), np.uint8)
+    dbg = np.hstack([img[y0:y1, x0:x1], gap, out[y0:y1, x0:x1]])
+    cv2.imwrite(os.path.join(OUT, name.replace(".png", "-debug.jpg")), dbg,
+                [cv2.IMWRITE_JPEG_QUALITY, 94])
+
+    # mask preview so the geometry can be checked by eye
+    prev = img.copy()
+    prev[mask > 0] = (0.45 * prev[mask > 0] + 0.55 * np.array([60, 60, 255])).astype(np.uint8)
+    cv2.imwrite(os.path.join(OUT, name.replace(".png", "-mask.jpg")),
+                prev[y0:y1, x0:x1], [cv2.IMWRITE_JPEG_QUALITY, 90])
+    print("wrote", name)
 
 
-# ---- HERO (1280x720): ornate cross on the back wall ----
+# ============================================================ HERO (1280x720)
+# Ornate gold cross on vertical wood paneling, with a spotlight halo behind it.
+# The halo is kept (it reads as a wall wash); only the cross and its drop shadow go.
+# His jacket enters from the lower left, so the mask stair-steps clear of it.
 process(
     "hero-still.png",
-    os.path.join(PUB, "hero", "hero-still.jpg"),
-    polys=[
-        # generous polygon around the cross incl. its shadow, inside the wall panel
-        # arms + upper post, then only the lower post (his shoulder is bottom-left)
-        ([(566, 128), (748, 128), (748, 405), (618, 405), (618, 296), (566, 296)], "v"),
+    os.path.join(ORIG, "hero__hero-still.jpg"),
+    remove=[
+        # rectangle over cross + halo + drop shadow; the left edge stair-steps up
+        # following his jacket silhouette with ~10px of clearance
+        [(556, 118), (752, 118), (752, 398),
+         (631, 398), (623, 378), (615, 356), (609, 334), (601, 312),
+         (593, 290), (583, 268), (575, 246), (570, 200), (556, 196)],
     ],
-    tex_rows=(50, 118),  # clean lit wall rows above the cross
+    donor_rows=(72, 116),        # clean wall directly above the cross, same columns
+    grain_rect=(560, 60, 750, 115),
+    seam_strength=1.0,
 )
 
 
-# ---- SHOW ME plate (1280x720): gold cross behind him + framed cross at right ----
-def showme_frame(out):
-    """Fill the framed 'cross painting' interior with a smooth dark velvet
-    reproduction of the frame's inner tone (Telea inpaint on a uniform area)."""
-    m = np.zeros(out.shape[:2], np.uint8)
-    cv2.rectangle(m, (868, 122), (972, 318), 255, -1)
-    return cv2.inpaint(out, m, 7, cv2.INPAINT_TELEA)
-
-
+# ====================================================== SHOW ME plate (1280x720)
+# Gold cross on the back wall (his head overlaps its lower right), plus a small
+# cross inside the framed print at right.
 process(
     "show-me.png",
-    os.path.join(PUB, "plates", "show-me.jpg"),
-    polys=[
-        # upper post + arms: rebuild rows from the clean panel to the left/right
-        ([(588, 22), (750, 22), (750, 132), (588, 132)], "h"),
-        # lower post, left of his hairline (face begins ~x=668): left wall only
-        ([(632, 130), (684, 130), (684, 296), (632, 296)], "v"),
-        # the small cross symbol inside the picture frame at right (uniform panel)
-        ([(872, 160), (938, 160), (938, 286), (872, 286)], "v"),
+    os.path.join(ORIG, "plates__show-me.jpg"),
+    remove=[
+        # finial + upper post + arms — entirely above his head (hair crown is y~127)
+        [(584, 12), (740, 12), (740, 124), (584, 124)],
+        # the cross motif inside the framed print at right
+        [(872, 170), (922, 170), (922, 292), (872, 292)],
     ],
-    tex_rows=(0, 21),  # clean wall strip above the cross
-    tex_strength=0.45,
+    # lower post: occluded by his hair, so let hue find the true edge
+    auto=[(628, 118, 706, 278)],
+    donor_rows=(0, 15),          # thin strip of clean wall above the finial
+    grain_rect=(750, 20, 860, 90),
+    seam_strength=0.85,
 )
 
 
-# ---- SHOW ME cover (2048x2048, official art): small cross symbol inside the frame ----
-# Original is archived at private/masters/covers/show-me-original.jpg before publishing.
+# ================================================ SHOW ME cover (2048x2048 art)
+# Only the small cross motif inside the framed print. Original art is archived.
 process(
     "show-me-cover.png",
-    os.path.join(PUB, "covers", "show-me.jpg"),
-    polys=[
-        # cross symbol; polygon dodges his shoulder at the lower-left
-        ([(1815, 435), (1935, 435), (1935, 732), (1892, 732), (1846, 650), (1815, 650)], "v-top"),
+    os.path.join(ORIG, "covers__show-me.jpg"),
+    remove=[
+        [(1812, 430), (1938, 430), (1938, 742), (1888, 742), (1848, 660), (1812, 660)],
     ],
-    tex_rows=(330, 420),  # plain frame interior above the symbol
-    tex_strength=0.4,
+    donor_rows=(330, 425),       # plain frame interior above the motif
+    grain_rect=(1815, 330, 1935, 425),
+    seam_strength=0.5,
 )
