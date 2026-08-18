@@ -44,7 +44,10 @@ A palette pass is a `:root` edit. Keep gold as metal, not neon.
 3. `Hero` — 100svh cinema. Video `#top`. Letter reveal, "New singles out now" badge, vertical side label, DSP row, animated scroll cue, **"As seen" press bar** (text wordmarks from `catalog.press`, no third-party logos).
 4. `Ticker` — gold marquee, alternating outline words, masked edges, pauses on hover.
 4b. `Honors` — `#honors`. **Awards-night band**: spotlight cone, four laurel cards from `catalog.honors`. Wording is deliberately truthful ("Grammy ballot consideration", not a win). Laurel SVG lives in `Laurel.tsx`.
-5. `Chapter` ×2 — `#music` (`#show-me`) and `#wtda`. Sticky pin + scroll-scrubbed video on desktop. Still + loop on mobile. Ghost numeral, 3D-tilt cover with rotating text badge (click = play), DSP row + Share (Web Share / clipboard).
+5. `Chapter` ×2 — `#music` (`#show-me`) and `#wtda`. `.chapter-copy::before` lays a masked
+   left-side scrim under the copy so type stays legible over any plate — the WTDA bathroom
+   frame is bright, and gold-on-marble was unreadable without it. Headings, kicker and blurb
+   also carry a soft text-shadow, and `.featured` uses `--gold-hi`. Sticky pin + scroll-scrubbed video on desktop. Still + loop on mobile. Ghost numeral, 3D-tilt cover with rotating text badge (click = play), DSP row + Share (Web Share / clipboard).
 6. `Player` — **real Web Audio analyser** drives the 28 bars (CSS pulse fallback if the AudioContext fails), spinning disc, progress ring, `PREVIEW_CAP = 30`.
 7. `MiniPlayer` — fixed bottom-left now-playing bar. Shows once a preview has started **and** its source `.player` is off-screen. Toggles through `player-store.toggleCurrent()`.
 8. `Album` — `#album`. World of Grey teaser: animated "shades" wash, swatches, meta grid, italic genre marquee, notify (`interest: "album"`).
@@ -69,7 +72,28 @@ A palette pass is a `:root` edit. Keep gold as metal, not neon.
   **Never reintroduce a portrait**: no `avatar-image-url` on the ElevenLabs element,
   no photo in the orb. The old persona portrait is archived in
   `private/masters/originals/ash__*` and is no longer served.
-- Orb chrome: conic gold/burgundy ring, twin halos, **audio-reactive live ring** (`--amp` from an analyser on the hello/timeout clips). Open state shows an ×.
+- Orb chrome: conic gold/burgundy ring, twin halos, and an **audio-reactive glow**. Every
+  clip she speaks is routed through a Web Audio analyser that writes `--amp` on the widget
+  root; the orb core scales, the live ring expands, and a gold bloom tracks her voice. If the
+  analyser is unavailable (autoplay policy, old browser) a synthesised pulse stands in, so the
+  orb **always** moves while she talks. Open state shows an ×.
+
+### She answers questions
+
+- `POST /api/ash/ask` → `{ answer }`, three tiers:
+  1. `lib/ash-brain.ts` — a grounded rule set covering tour/Grammy/Billboard/album/singles/
+     merch/label/FaSho/name-change/illness/hometown/streaming. **Works with no API keys, free.**
+  2. If `ANTHROPIC_API_KEY` is set, Claude answers with `SYSTEM_PROMPT` + `FACT_SHEET` as its
+     ONLY source of truth (capped at 500 calls/day). It cannot invent dates or call him a
+     Grammy winner — the prompt forbids both.
+  3. Otherwise she deflects in character rather than dead-ending.
+- `POST /api/ash/speak` → `audio/mpeg` from ElevenLabs TTS. Server-side only, so the key is
+  never exposed; 400 chars/request, 120k chars/day.
+- The panel has a conversation log, a text composer, and a **mic button** (Web Speech API,
+  shown only where supported) so she can literally be spoken to. Replies are spoken back and
+  the orb pulses with them.
+- Bubble classes are `.from-you` / `.from-ash` on purpose — a bare `.ash` modifier collides
+  with the widget root rule `.ash { position: fixed }` and throws replies out of the panel.
 - Teaser bubble once per session (`sessionStorage.dg_ash_tease`) at ~5s.
 - Panel: avatar header + status pill, typewriter line, **12-pip quota meter** (functional — reads `/api/voice/quota`), suggestion chips (Play Show Me / Play WTDA / merch / tour / about — "Play" chips scroll and press the real play button), Talk live → `/api/voice/signed-url` → mounts `elevenlabs-convai`. Flow and quota logic are unchanged from the original build.
 

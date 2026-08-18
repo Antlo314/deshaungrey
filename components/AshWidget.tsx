@@ -1,22 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { useReducedMotion } from "@/lib/motion";
 import { Icon } from "./Icons";
 import { scrollToId } from "./Effects";
 
-type Quota = {
-  remaining: number;
-  cap: number;
-  timeoutMs: number;
-  timedOut: boolean;
-};
-
-type SessionRes = Quota & {
-  ok: boolean;
-  reason?: string;
-  signedUrl?: string;
-};
+type Quota = { remaining: number; cap: number; timeoutMs: number; timedOut: boolean };
+type SessionRes = Quota & { ok: boolean; reason?: string; signedUrl?: string };
+type Msg = { role: "you" | "ash"; text: string };
+// NB: bubble modifier classes are prefixed — a bare `.ash` would collide with the
+// widget root rule (.ash { position: fixed }) and fling replies out of the panel.
 
 const HELLO =
   "Hey. You made it into the World of Grey. I'm ASH — Dashaun's biggest fan. You want the new singles, the merch, or you just wanna talk him?";
@@ -29,7 +22,6 @@ function useTypewriter(text: string, speed = 14) {
   const [idx, setIdx] = useState(0);
   const [cur, setCur] = useState(text);
   if (cur !== text) {
-    // derived-state reset during render (React-sanctioned pattern)
     setCur(text);
     setIdx(0);
   }
@@ -46,25 +38,51 @@ function useTypewriter(text: string, speed = 14) {
     }, speed);
     return () => clearInterval(id);
   }, [text, speed, reduced]);
-  const out = reduced ? text : text.slice(0, idx);
-  return { out, done: reduced || idx >= text.length };
+  return { out: reduced ? text : text.slice(0, idx), done: reduced || idx >= text.length };
 }
+
+type SpeechRec = {
+  lang: string;
+  interimResults: boolean;
+  continuous: boolean;
+  onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
+  onend: (() => void) | null;
+  onerror: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+type SpeechCtor = new () => SpeechRec;
 
 export function AshWidget() {
   const [open, setOpen] = useState(false);
   const [line, setLine] = useState(HELLO);
+  const [log, setLog] = useState<Msg[]>([]);
   const [status, setStatus] = useState("Talk to ASH");
   const [quota, setQuota] = useState<Quota | null>(null);
   const [live, setLive] = useState(false);
   const [tease, setTease] = useState(false);
   const [speaking, setSpeaking] = useState(false);
+  const [thinking, setThinking] = useState(false);
+  const [listening, setListening] = useState(false);
+  // read once during render: speech support is a static browser capability
+  const [canListen] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const w = window as unknown as { SpeechRecognition?: SpeechCtor; webkitSpeechRecognition?: SpeechCtor };
+    return Boolean(w.SpeechRecognition || w.webkitSpeechRecognition);
+  });
+
   const greeted = useRef(false);
   const widgetHost = useRef<HTMLDivElement | null>(null);
   const root = useRef<HTMLDivElement | null>(null);
+  const scroller = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const ctxRef = useRef<AudioContext | null>(null);
   const anRef = useRef<AnalyserNode | null>(null);
+  const nodeRef = useRef<WeakMap<HTMLAudioElement, MediaElementAudioSourceNode>>(new WeakMap());
   const rafRef = useRef(0);
+  const recRef = useRef<SpeechRec | null>(null);
+
   const { out: typed, done } = useTypewriter(line);
 
   useEffect(() => {
@@ -101,6 +119,7 @@ export function AshWidget() {
     if (greeted.current) return;
     greeted.current = true;
     playClip("/audio/ash/hello.mp3", HELLO);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   useEffect(() => {
@@ -110,39 +129,52 @@ export function AshWidget() {
     return () => document.removeEventListener("keydown", onKey);
   }, [open]);
 
-  function playClip(src: string, fallback: string) {
-    setLine(fallback);
-    audioRef.current?.pause();
-    const audio = new Audio(src);
-    audio.crossOrigin = "anonymous";
-    audioRef.current = audio;
-    // audio-reactive halo
+  useEffect(() => {
+    scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: "smooth" });
+  }, [log, thinking]);
+
+  // ---------------------------------------------------------------- audio
+  /** Wires an <audio> through an analyser so the orb pulses with her voice. */
+  function attachAnalyser(audio: HTMLAudioElement) {
     try {
-      const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const AC =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       const ctx = ctxRef.current ?? new AC();
       ctxRef.current = ctx;
-      const src2 = ctx.createMediaElementSource(audio);
+      let node = nodeRef.current.get(audio);
+      if (!node) {
+        node = ctx.createMediaElementSource(audio);
+        nodeRef.current.set(audio, node);
+      }
       const an = ctx.createAnalyser();
-      an.fftSize = 64;
-      an.smoothingTimeConstant = 0.7;
-      src2.connect(an);
+      an.fftSize = 256;
+      an.smoothingTimeConstant = 0.65;
+      node.connect(an);
       an.connect(ctx.destination);
       anRef.current = an;
       ctx.resume().catch(() => undefined);
     } catch {
       anRef.current = null;
     }
+  }
+
+  function pulseWhile(audio: HTMLAudioElement) {
     const start = () => {
       setSpeaking(true);
       const an = anRef.current;
       const data = an ? new Uint8Array(an.frequencyBinCount) : null;
       const loop = () => {
-        let amp = 0.5;
+        let amp = 0;
         if (an && data) {
           an.getByteFrequencyData(data);
-          let s = 0;
-          for (let i = 0; i < 12; i++) s += data[i];
-          amp = Math.min(1, s / (12 * 200));
+          let sum = 0;
+          const n = Math.min(40, data.length);
+          for (let i = 0; i < n; i++) sum += data[i];
+          amp = Math.min(1, sum / (n * 128));
+        } else {
+          // no analyser (autoplay policy / old browser): fake a believable pulse
+          amp = 0.35 + Math.abs(Math.sin(audio.currentTime * 7)) * 0.5;
         }
         root.current?.style.setProperty("--amp", amp.toFixed(3));
         rafRef.current = requestAnimationFrame(loop);
@@ -158,9 +190,108 @@ export function AshWidget() {
     audio.addEventListener("play", start);
     audio.addEventListener("ended", end);
     audio.addEventListener("pause", end);
+    audio.addEventListener("error", end);
+  }
+
+  function playClip(src: string, fallback: string) {
+    setLine(fallback);
+    audioRef.current?.pause();
+    const audio = new Audio(src);
+    audioRef.current = audio;
+    attachAnalyser(audio);
+    pulseWhile(audio);
     audio.play().catch(() => undefined);
   }
 
+  /** Speaks arbitrary text through the server TTS route. */
+  async function speak(text: string) {
+    try {
+      const res = await fetch("/api/ash/speak", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      if (!res.ok) return;
+      const url = URL.createObjectURL(await res.blob());
+      audioRef.current?.pause();
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      attachAnalyser(audio);
+      pulseWhile(audio);
+      audio.addEventListener("ended", () => URL.revokeObjectURL(url));
+      await audio.play().catch(() => undefined);
+    } catch {
+      /* text still shows */
+    }
+  }
+
+  // ---------------------------------------------------------------- ask
+  async function ask(question: string) {
+    const q = question.trim();
+    if (!q || thinking) return;
+    setLog((l) => [...l, { role: "you", text: q }]);
+    setThinking(true);
+    setStatus("Thinking");
+    try {
+      const res = await fetch("/api/ash/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: q, history: log.slice(-6) }),
+      });
+      const data = (await res.json()) as { answer?: string };
+      const answer = data.answer || "Say that again for me?";
+      setLog((l) => [...l, { role: "ash", text: answer }]);
+      setLine(answer);
+      setStatus("Ask me anything");
+      speak(answer);
+    } catch {
+      const answer = "My line glitched. Ask me again?";
+      setLog((l) => [...l, { role: "ash", text: answer }]);
+      setLine(answer);
+    } finally {
+      setThinking(false);
+    }
+  }
+
+  function onSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const el = inputRef.current;
+    if (!el) return;
+    const v = el.value;
+    el.value = "";
+    ask(v);
+  }
+
+  /** Voice input via the browser's speech recognition, where available. */
+  function toggleMic() {
+    if (listening) {
+      recRef.current?.stop();
+      return;
+    }
+    const w = window as unknown as { SpeechRecognition?: SpeechCtor; webkitSpeechRecognition?: SpeechCtor };
+    const Ctor = w.SpeechRecognition || w.webkitSpeechRecognition;
+    if (!Ctor) return;
+    const rec = new Ctor();
+    recRef.current = rec;
+    rec.lang = "en-US";
+    rec.interimResults = false;
+    rec.continuous = false;
+    rec.onresult = (e) => {
+      const said = e.results?.[0]?.[0]?.transcript || "";
+      if (said) ask(said);
+    };
+    rec.onend = () => setListening(false);
+    rec.onerror = () => setListening(false);
+    setListening(true);
+    setStatus("Listening");
+    try {
+      rec.start();
+    } catch {
+      setListening(false);
+    }
+  }
+
+  // ---------------------------------------------------------------- live agent
   async function startLive() {
     if (quota?.timedOut) {
       setStatus("Come back in a few");
@@ -182,7 +313,6 @@ export function AshWidget() {
       playClip("/audio/ash/timeout.mp3", TIMEOUT);
       return;
     }
-
     if (data.ok && data.signedUrl) {
       setLive(true);
       setStatus("I'm listening");
@@ -190,13 +320,9 @@ export function AshWidget() {
       mountOfficialWidget(data.signedUrl);
       return;
     }
-
-    setStatus("ASH is with you");
-    setLine(
-      data.reason === "agent_unwired"
-        ? "I'm on the site even while my live voice is warming up. Hit Music for Show Me and Where Dem Dollars At, or jump the tour list."
-        : "Give me a second — my live line is busy. The singles still play."
-    );
+    // no live agent wired: the text + TTS path below still works fully
+    setStatus("Ask me anything");
+    setLine("My live line isn't up yet — but type or hit the mic and I'll answer you right here.");
   }
 
   function mountOfficialWidget(signedUrl: string) {
@@ -231,7 +357,6 @@ export function AshWidget() {
   function playTrack(id: string) {
     setOpen(false);
     scrollToId(id === "show-me" ? "music" : id);
-    setLine(id === "show-me" ? "Show Me. Candles on. Say less." : "Where Dem Dollars At — towels on, sunglasses on.");
     setTimeout(() => {
       const btn = document.querySelector<HTMLButtonElement>(`[data-track="${id}"] .player .play`);
       if (btn && btn.getAttribute("aria-label")?.startsWith("Play")) btn.click();
@@ -243,9 +368,10 @@ export function AshWidget() {
   const chips = [
     { l: "Play Show Me", go: () => playTrack("show-me") },
     { l: "Play WTDA", go: () => playTrack("wtda") },
+    { l: "Tour dates?", go: () => ask("When is the tour?") },
+    { l: "Grammy?", go: () => ask("Tell me about the Grammy") },
+    { l: "Who is Dashaun?", go: () => ask("Who is Dashaun Grey?") },
     { l: "The merch", go: () => jump("merch") },
-    { l: "Tour dates?", go: () => jump("tour") },
-    { l: "Who is Dashaun?", go: () => jump("about") },
   ];
 
   return (
@@ -258,7 +384,7 @@ export function AshWidget() {
             </span>
             <div className="who">
               <div className="ash-name">ASH</div>
-              <div className={`ash-status ${live ? "live" : ""}`}>
+              <div className={`ash-status ${live || speaking ? "live" : ""}`}>
                 <i aria-hidden />
                 {status}
               </div>
@@ -269,10 +395,66 @@ export function AshWidget() {
           </div>
 
           <div className="ash-body">
-            <p className="ash-line" aria-live="polite">
-              {typed}
-              {!done ? <span className="caret" aria-hidden /> : null}
-            </p>
+            <div className="ash-scroll" ref={scroller}>
+              {log.length === 0 ? (
+                <p className="ash-line" aria-live="polite">
+                  {typed}
+                  {!done ? <span className="caret" aria-hidden /> : null}
+                </p>
+              ) : (
+                <>
+                  {log.map((m, i) => (
+                    <p key={i} className={`bubble from-${m.role}`}>
+                      {m.text}
+                    </p>
+                  ))}
+                  {thinking ? (
+                    <p className="bubble from-ash thinking" aria-live="polite">
+                      <i /><i /><i />
+                    </p>
+                  ) : null}
+                </>
+              )}
+            </div>
+
+            <div className="chips">
+              {chips.map((c) => (
+                <button key={c.l} type="button" onClick={c.go}>
+                  {c.l}
+                </button>
+              ))}
+            </div>
+
+            <form className="ash-ask" onSubmit={onSubmit}>
+              <input
+                ref={inputRef}
+                type="text"
+                placeholder="Ask me about Dashaun…"
+                aria-label="Ask ASH about Dashaun"
+                maxLength={300}
+                autoComplete="off"
+              />
+              {canListen ? (
+                <button
+                  type="button"
+                  className={`ash-mic ${listening ? "on" : ""}`}
+                  onClick={toggleMic}
+                  aria-label={listening ? "Stop listening" : "Speak to ASH"}
+                >
+                  <Icon.mic style={{ width: 15, height: 15 }} />
+                </button>
+              ) : null}
+              <button type="submit" className="ash-send" aria-label="Send" disabled={thinking}>
+                <Icon.arrow style={{ width: 15, height: 15 }} />
+              </button>
+            </form>
+
+            {!live ? (
+              <button className="btn ghost ash-livebtn" onClick={startLive}>
+                Start a live call
+              </button>
+            ) : null}
+            <div ref={widgetHost} className="ash-host" />
 
             <div className="pips" aria-hidden>
               {Array.from({ length: cap }, (_, i) => (
@@ -280,46 +462,27 @@ export function AshWidget() {
               ))}
             </div>
             <div className="ash-quota">
-              <span>{remaining} of {cap} live turns left</span>
+              <span>{remaining} of {cap} live calls left</span>
               <span>{quota?.timedOut ? "Cooling down" : "This visit"}</span>
             </div>
-
-            <div className="chips">
-              {chips.map((c) => (
-                <button key={c.l} type="button" onClick={c.go}>{c.l}</button>
-              ))}
-            </div>
-
-            <div className="ash-actions">
-              {!live ? (
-                <button className="btn solid" onClick={startLive}>
-                  <Icon.mic style={{ width: 13, height: 13 }} />
-                  Talk live
-                </button>
-              ) : null}
-              <button className="btn ghost" onClick={() => jump("music")}>Singles</button>
-              <button className="btn ghost" onClick={() => jump("merch")}>Merch</button>
-            </div>
-            <div ref={widgetHost} className="ash-host" />
-          </div>
-          <div className="ash-foot">
-            <span>Voice · ElevenLabs</span>
-            <span>Only talks Dashaun</span>
           </div>
         </div>
       ) : null}
 
       <div className={`ash-bubble ${tease && !open ? "show" : ""}`} aria-hidden>
-        Psst — I&apos;m ASH. Wanna hear the new one?
+        Psst — I&apos;m ASH. Ask me anything about him.
       </div>
 
       <button
         className="ash-orb"
         id="ash-orb"
-        onClick={() => { setOpen((v) => !v); setTease(false); }}
+        onClick={() => {
+          setOpen((v) => !v);
+          setTease(false);
+        }}
         aria-label={open ? "Close ASH" : "Talk to ASH"}
         aria-expanded={open}
->
+      >
         <span className="halo" aria-hidden />
         <span className="halo two" aria-hidden />
         <span className="live" aria-hidden />

@@ -164,22 +164,28 @@ def composite(img, filled, mask, feather=2.5):
 
 
 def process(name, src, remove, donor_rows, grain_rect, protect=(), grow=2, auto=(),
-            seam_strength=1.0, grain_strength=1.0, extra=None):
+            seam_strength=1.0, grain_strength=1.0, ramp=9.0, extra=None):
     img = cv2.imread(src, cv2.IMREAD_COLOR)
     assert img is not None, src
     mask = build_mask(img, remove, protect, grow, auto)
 
     filled = laplace_fill(img, mask)
 
+    # Texture must ramp in from the mask edge. The harmonic solve already matches
+    # the boundary exactly; multiplying a seam profile over the whole patch would
+    # re-apply texture the original pixels already have and reintroduce a visible
+    # vertical edge at the mask border — which is exactly what a "remnant" looks like.
+    dist = cv2.distanceTransform((mask > 0).astype(np.uint8), cv2.DIST_L2, 5)
+    w = np.clip(dist / float(ramp), 0.0, 1.0)[..., None]
+
     prof = seam_profile(img, donor_rows)
-    prof = 1.0 + (prof - 1.0) * seam_strength
-    filled = filled * prof                       # broadcast (1,W,3) down every row
+    filled = filled * (1.0 + (prof - 1.0) * seam_strength * w)
 
     sig = grain_sigma(img, grain_rect) * grain_strength
     noise = rng.normal(0.0, 1.0, filled.shape).astype(np.float32)
     noise = cv2.GaussianBlur(noise, (0, 0), 0.55)
     noise /= max(noise.std(), 1e-6)
-    filled = filled + noise * sig
+    filled = filled + noise * sig * w
 
     out = composite(img, filled, mask)
     if extra:
@@ -215,9 +221,10 @@ process(
     remove=[
         # rectangle over cross + halo + drop shadow; the left edge stair-steps up
         # following his jacket silhouette with ~10px of clearance
-        [(556, 118), (752, 118), (752, 398),
-         (631, 398), (623, 378), (615, 356), (609, 334), (601, 312),
-         (593, 290), (583, 268), (575, 246), (570, 200), (556, 196)],
+        [(556, 112), (784, 112), (784, 434),
+         (650, 434), (640, 410), (631, 392), (623, 372), (615, 352),
+         (609, 332), (601, 312), (593, 290), (583, 268), (575, 246),
+         (570, 200), (556, 190)],
     ],
     donor_rows=(72, 116),        # clean wall directly above the cross, same columns
     grain_rect=(560, 60, 750, 115),

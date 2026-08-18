@@ -57,8 +57,7 @@ const jobs = [
   { src: join(PUB, "covers/wtda.jpg"), archive: "covers/wtda.jpg", out: "covers/wtda", tiers: { "-4k": 4096, "": 2048, "-m": 800 }, tone: false },
   // about portrait (png → jpg tiers)
   { src: join(PUB, "about/portrait.png"), archive: "about/portrait.png", out: "about/portrait", tiers: { "-4k": 2560, "": 1600, "-m": 900 } },
-  // ASH
-  { src: join(PUB, "ash/ash-portrait.jpg"), archive: "ash/ash-portrait.jpg", out: "ash/ash-portrait", tiers: { "": 2048, "-m": 400 } },
+  // (ASH has no portrait — she is an animated orb; the old art is archived)
   // merch
   ...["show-me-tee", "show-me-hoodie", "wtda-tee", "wtda-hoodie"].map((n) => ({
     src: join(PUB, `merch/${n}.jpg`), archive: `merch/${n}.jpg`, out: `merch/${n}`, tiers: { "": 2048, "-m": 900 },
