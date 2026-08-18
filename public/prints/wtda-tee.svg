@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3600 3600">
+  <rect width="3600" height="3600" fill="none"/>
+  <circle cx="1800" cy="1680" r="980" fill="none" stroke="#111" stroke-width="18" stroke-dasharray="14 10"/>
+  <text x="1800" y="1580" text-anchor="middle" font-family="Georgia, serif" font-size="220" fill="#111">Where Dem</text>
+  <text x="1800" y="1820" text-anchor="middle" font-family="Georgia, serif" font-size="260" fill="#111">Dollar$ At</text>
+  <text x="1800" y="2020" text-anchor="middle" font-family="Arial, sans-serif" font-size="56" fill="#8B1E3F" letter-spacing="10">WE DON'T GUESS, WE GET.</text>
+</svg>
