@@ -160,10 +160,10 @@ export interface SiteSettings {
 }
 
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
-  contactEmail: "",
-  bookingEmail: "",
-  pressEmail: "",
-  phone: "",
+  contactEmail: "services@megentllc.com",
+  bookingEmail: "services@megentllc.com",
+  pressEmail: "services@megentllc.com",
+  phone: "678-750-3247",
   city: "",
   announcement: "",
   announcementHref: "",

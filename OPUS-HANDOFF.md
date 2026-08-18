@@ -19,8 +19,8 @@ domain. MEG links out to it (roster card "Official site", `NEXT_PUBLIC_DASHAUN_U
 
 - Every fact on the site comes from `../meg.txt` (company bio) or Dashaun's artist bio. **Never inflate**:
   "Grammy ballot consideration" not a win, "Billboard chart recognition" not a chart position, "B.B. King Award".
-  No invented dates, addresses, phone numbers, emails, staff, or artists. Contact details come only from
-  Settings (owner-entered) or env — the seed leaves them empty on purpose.
+  No invented dates, addresses, staff, or artists. The only real contact is **services@megentllc.com · 678-750-3247**
+  (owner-confirmed 2026-08-18) — seeded as the default in Settings; owners can change it there. No city is asserted.
 - Real people: never generate a face for Dr. Glenda S. Williams or Dashaun Grey. Founder portrait slot is
   `components/FounderPortrait.tsx` → drop a real photo at `public/media/legacy/founder.jpg`.
 - Roster/releases/press are DB-driven and owner-editable. Company copy (`lib/content.ts`) is code — the voice.
@@ -89,7 +89,7 @@ the end of `globals.css` — add new block selectors there if a kicker ever turn
 
 1. **Deploy.** `git remote add origin <new repo>` → push → Vercel import → Neon → env (`SESSION_SECRET`, `ADMIN_EMAIL/PASSWORD`,
    `NEXT_PUBLIC_SITE_URL`) → domain megentllc.com. Then hit `/api/health` and `/admin`. README has the exact steps.
-2. **Owner onboarding.** Add Dashaun as owner (Team), fill Settings (contact/booking/press emails, socials, city).
+2. **Owner onboarding.** Add Dashaun as owner (Team), confirm Settings (services@megentllc.com / 678-750-3247 are pre-filled; add socials, city).
    Fill DSP links on the two singles (Releases) and Dashaun's socials (Roster) — same links the artist site needs
    (`../artists/DashaunGrey/site/lib/catalog.ts` → `dsps`, `socials`; keep them in sync by hand for now).
 3. **Assets.** Work through `ASSET-PROMPTS.md`: hero plate (`public/media/hero/hero.mp4` + `hero-still.jpg`),

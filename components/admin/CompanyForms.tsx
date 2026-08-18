@@ -89,7 +89,7 @@ export function SettingsForm({ settings }: { settings: SiteSettings }) {
         <div className="row3">
           <label className="l">
             General email
-            <input type="email" name="contactEmail" defaultValue={s.contactEmail} placeholder="info@megentllc.com" />
+            <input type="email" name="contactEmail" defaultValue={s.contactEmail} placeholder="services@megentllc.com" />
             <span className="h">Shown in the footer, menu and contact page.</span>
           </label>
           <label className="l">
