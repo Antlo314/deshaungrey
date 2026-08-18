@@ -166,6 +166,62 @@ export const socials = [
   { id: "youtube", label: "YouTube", href: "#" },
 ];
 
+/**
+ * Streaming links. Replace "#" with the artist profile / track URLs.
+ * Order here is the order rendered in the Listen menu and DSP rows.
+ */
+export type Dsp = { id: "spotify" | "apple" | "youtube" | "tidal" | "amazon"; label: string; href: string };
+export const dsps: Dsp[] = [
+  { id: "spotify", label: "Spotify", href: "#" },
+  { id: "apple", label: "Apple Music", href: "#" },
+  { id: "youtube", label: "YouTube", href: "#" },
+  { id: "tidal", label: "Tidal", href: "#" },
+  { id: "amazon", label: "Amazon", href: "#" },
+];
+
+/** Career facts surfaced in About. Sourced from the official bio. */
+export const stats = [
+  { n: "2003", label: "First deal, age 14" },
+  { n: "Billboard", label: "Hot R&B · Greatest Gainer" },
+  { n: "2011", label: "Grammy ballot" },
+  { n: "Loris, SC", label: "Hometown" },
+];
+
+export const timeline = [
+  { when: "2003", what: "Signs with FaSho at fourteen — Warner Bros. subsidiary." },
+  { when: "2011", what: "“I’m Wit It” ft. Slick Pulla charts Billboard. Grammy ballot consideration." },
+  { when: "2019", what: "Takes the reins at MEG Enterprises. Illness, healing, and a new name." },
+  { when: "Now", what: "Show Me. Where Dem Dollars At. World of Grey on the way." },
+];
+
+/** MEG Enterprises — pulled from the company bio. */
+export const label = {
+  name: "MEG Enterprises, LLC",
+  short: "MEG",
+  tagline: "Independent Music. Developing Artists. Building Brands. Creating Legacy.",
+  founder: "Dr. Glenda S. Williams",
+  founderRole: "Founder · South Carolina native",
+  years: "30+",
+  yearsLabel: "years in music, artist development, and entertainment",
+  intro:
+    "An independent record label and family-founded entertainment company built on more than three decades of experience in music, artist development, management, promotion, and entertainment business strategy.",
+  approach:
+    "MEG gives artists an environment that supports creative development, professional growth, strategic release planning, branding, promotion, and long-term career development — while keeping an entrepreneurial approach to the business of music.",
+  nextGen:
+    "After more than 30 years in the industry, Dr. Williams began transitioning the company’s legacy to the next generation in 2019, passing greater leadership to her son, MaQuell Williams — known today as Dashaun Grey. More than a change in leadership: family, longevity, artistic development, business ownership, and legacy.",
+  closing: "More Than Music. Building Legacy.",
+  credits: [
+    { t: "Billboard chart recognition", s: "Milestone" },
+    { t: "Grammy ballot consideration", s: "Milestone" },
+    { t: "The B.B. King Award", s: "Honor" },
+    { t: "Khaotic’s BET Awards 2023 Takeover", s: "Project lead" },
+    { t: "MTV True Life · Oprah’s Greenleaf", s: "Television" },
+    { t: "IBNX Radio · stage plays · live productions", s: "Radio & stage" },
+    { t: "Song placements for radio and television", s: "Sync" },
+    { t: "Apparel sponsorships · magazine features", s: "Brand" },
+  ],
+};
+
 export function findSku(sku: string) {
   return (
     singles.find((s) => s.sku === sku) ?? merch.find((m) => m.sku === sku) ?? null

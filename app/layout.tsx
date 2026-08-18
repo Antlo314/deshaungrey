@@ -40,11 +40,35 @@ export const metadata: Metadata = {
   icons: { icon: "/favicon.svg" },
 };
 
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "MusicGroup",
+  name: "Dashaun Grey",
+  alternateName: "Que Williams",
+  url: "https://dashaungrey.com",
+  image: "https://dashaungrey.com/media/og.jpg",
+  genre: ["R&B", "Hip-Hop", "Pop", "Reggae", "Dance"],
+  foundingLocation: { "@type": "Place", name: "Loris, South Carolina" },
+  recordLabel: { "@type": "Organization", name: "MEG Enterprises, LLC" },
+  track: [
+    { "@type": "MusicRecording", name: "Show Me", byArtist: { "@type": "MusicGroup", name: "Dashaun Grey" } },
+    { "@type": "MusicRecording", name: "Where Dem Dollars At", byArtist: { "@type": "MusicGroup", name: "Dashaun Grey" } },
+  ],
+  album: { "@type": "MusicAlbum", name: "World of Grey" },
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${geist.variable} ${display.variable}`}>
+      <head>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+        <noscript>
+          <style>{`.st>span,.reveal,.reveal-clip,.reveal-x,.hero-fade{opacity:1!important;transform:none!important;clip-path:none!important}.reveal-lines .l>span{transform:none!important}`}</style>
+        </noscript>
+      </head>
       <body>
         <div className="film-grain" aria-hidden />
+        <div className="vignette" aria-hidden />
         {children}
       </body>
     </html>

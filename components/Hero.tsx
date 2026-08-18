@@ -1,22 +1,52 @@
 "use client";
 
-import { artist } from "@/lib/catalog";
+import { useEffect, useRef } from "react";
+import { artist, dsps } from "@/lib/catalog";
 import { useCinema } from "@/lib/useCinema";
+import { letters } from "@/lib/motion";
+import { Icon } from "./Icons";
+import { scrollToId } from "./Effects";
 
 export function Hero() {
   const cinema = useCinema();
+  const root = useRef<HTMLElement | null>(null);
+
+  // mouse parallax on the plate
+  useEffect(() => {
+    const el = root.current;
+    if (!el || !window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+    let raf = 0;
+    const onMove = (e: MouseEvent) => {
+      const r = el.getBoundingClientRect();
+      const mx = ((e.clientX - r.left) / r.width - 0.5) * 2;
+      const my = ((e.clientY - r.top) / r.height - 0.5) * 2;
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        el.style.setProperty("--mx", mx.toFixed(3));
+        el.style.setProperty("--my", my.toFixed(3));
+      });
+    };
+    const onLeave = () => {
+      el.style.setProperty("--mx", "0");
+      el.style.setProperty("--my", "0");
+    };
+    el.addEventListener("mousemove", onMove, { passive: true });
+    el.addEventListener("mouseleave", onLeave);
+    return () => {
+      el.removeEventListener("mousemove", onMove);
+      el.removeEventListener("mouseleave", onLeave);
+      cancelAnimationFrame(raf);
+    };
+  }, []);
+
+  const first = letters("Dashaun");
+  const last = letters("Grey", first.length);
 
   return (
-    <section className="hero" id="top">
+    <section className="hero" id="top" ref={root}>
       <div className="hero-media">
         {cinema ? (
-          <video
-            autoPlay
-            muted
-            playsInline
-            preload="auto"
-            poster="/media/hero/hero-still.jpg"
-          >
+          <video autoPlay muted playsInline loop preload="auto" poster="/media/hero/hero-still.jpg">
             <source src="/media/hero/hero.mp4" type="video/mp4" />
           </video>
         ) : (
@@ -25,20 +55,75 @@ export function Hero() {
             srcSet="/media/hero/hero-still-m.jpg 1200w, /media/hero/hero-still.jpg 1920w"
             sizes="100vw"
             alt="Dashaun Grey"
+            fetchPriority="high"
           />
         )}
       </div>
       <div className="hero-shade" />
-      <div className="hero-copy">
-        <p className="kicker">MEG Enterprises · World of Grey</p>
-        <h1>
-          Dashaun
-          <br />
-          Grey
-        </h1>
-        <p>{artist.tagline} Singer. Rapper. Songwriter. The singles are only an introduction.</p>
+
+      <div className="hero-badge hero-fade" style={{ ["--d" as string]: "1.1s" }}>
+        <i aria-hidden />
+        New singles <b>out now</b>
       </div>
-      <div className="hero-scroll">Scroll the film</div>
+
+      <div className="hero-side hero-fade" style={{ ["--d" as string]: "1.3s" }}>
+        World of Grey · The album · Coming {artist.albumWhen}
+      </div>
+
+      <div className="hero-copy">
+        <p className="kicker dot hero-fade" style={{ ["--d" as string]: "0.35s" }}>
+          MEG Enterprises · World of Grey
+        </p>
+        <h1 aria-label={artist.name}>
+          <span className="row" aria-hidden>
+            {first.map((l) => (
+              <span className="st" key={l.key}>
+                <span style={{ ["--i" as string]: l.i, ["--d" as string]: "0.25s" }}>{l.ch}</span>
+              </span>
+            ))}
+          </span>
+          <span className="row" aria-hidden>
+            {last.map((l) => (
+              <span className="st" key={l.key}>
+                <span style={{ ["--i" as string]: l.i, ["--d" as string]: "0.25s" }}>{l.ch}</span>
+              </span>
+            ))}
+          </span>
+        </h1>
+        <p className="hero-fade" style={{ ["--d" as string]: "0.9s" }}>
+          {artist.tagline} Singer. Rapper. Songwriter. The singles are only an introduction.
+        </p>
+        <div className="hero-cta hero-fade" style={{ ["--d" as string]: "1.05s" }}>
+          <a
+            className="btn solid"
+            href="#music"
+            data-cursor="Play"
+            onClick={(e) => {
+              e.preventDefault();
+              scrollToId("music");
+            }}
+          >
+            <Icon.play style={{ width: 11, height: 11, fill: "currentColor" }} />
+            Hear the singles
+          </a>
+          <div className="dsp" aria-label="Stream on">
+            {dsps.slice(0, 3).map((d) => {
+              const I = Icon[d.id];
+              return (
+                <a key={d.id} href={d.href} target={d.href === "#" ? undefined : "_blank"} rel="noreferrer" aria-label={d.label}>
+                  <I />
+                  {d.label}
+                </a>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      <div className="hero-scroll hero-fade" style={{ ["--d" as string]: "1.4s" }} aria-hidden>
+        Scroll
+        <i />
+      </div>
     </section>
   );
 }
