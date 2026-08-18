@@ -5,7 +5,7 @@ Next.js 16 artist site. Cinematic one-pager: preloader, Lenis smooth scroll, cus
 Streaming + social links are placeholders in `lib/catalog.ts` (`dsps`, `socials`) — fill them in before launch.
 
 ```
-cd C:\Users\aarons\Desktop\DashawnGrey\site
+cd C:\Users\aarons\Desktop\LUMENCOMMAND\Lumen\DashawnGrey\site
 copy .env.example .env.local
 npm install
 npm run dev
