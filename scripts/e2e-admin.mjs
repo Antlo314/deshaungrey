@@ -6,18 +6,22 @@
  * screenshots every admin screen at desktop + phone into .verify/.
  * Idempotent-ish: if an owner already exists it signs in with the same creds.
  */
-import { createRequire } from "module";
 import { mkdirSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 
-const require = createRequire("<PLAYWRIGHT_ROOT>/package.json");
-const { chromium } = require("playwright");
+import { chromium } from "./_playwright.mjs";
 
 const out = join(dirname(fileURLToPath(import.meta.url)), "..", ".verify");
 mkdirSync(out, { recursive: true });
 const base = process.env.URL || "http://localhost:4990";
-const OWNER = { name: "E2E Owner", email: "e2e-owner@example.test", password: "local-smoke-test-pw-1" };
+// Local smoke-test account only. Override with E2E_OWNER_* to point at another
+// environment; never reuse these values for a real deployed owner.
+const OWNER = {
+  name: process.env.E2E_OWNER_NAME || "E2E Owner",
+  email: process.env.E2E_OWNER_EMAIL || "e2e-owner@example.test",
+  password: process.env.E2E_OWNER_PASSWORD || "local-smoke-test-pw-1",
+};
 
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1.25 });

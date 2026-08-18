@@ -7,7 +7,7 @@ Dashaun's artist site lives one level up at `../artists/DashaunGrey/site` (dasha
 Next.js 16 · React 19 · Tailwind v4 · TypeScript · Postgres (Neon/Supabase) with a JSON dev store.
 
 ```
-cd C:\Users\<user>\Desktop\LUMENCOMMAND\Lumen\MEG\site
+cd path/to/MEG/site
 npm install
 npm run dev            # http://localhost:4990   dashboard: /admin
 ```

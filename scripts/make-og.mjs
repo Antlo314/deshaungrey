@@ -3,13 +3,11 @@
  * with the site's own fonts + the traced profile mark. Re-run after any brand
  * change: node scripts/make-og.mjs
  */
-import { createRequire } from "module";
 import { readFileSync, writeFileSync, mkdirSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 
-const require = createRequire("<PLAYWRIGHT_ROOT>/package.json");
-const { chromium } = require("playwright");
+import { chromium } from "./_playwright.mjs";
 
 const site = join(dirname(fileURLToPath(import.meta.url)), "..");
 const pathTs = readFileSync(join(site, "components", "ProfilePath.ts"), "utf8");

@@ -2,15 +2,13 @@
  * Screenshot every public page + the admin at desktop and phone sizes.
  *   node scripts/verify-viewports.mjs [desktop|phone] [pathFilter]
  * Requires the dev server (npm run dev → :4990). Output: .verify/*.jpg
- * Uses the Playwright install that lives in zion-agent.
+ * Playwright is resolved by scripts/_playwright.mjs (local install, PLAYWRIGHT_ROOT, or a sibling checkout).
  */
-import { createRequire } from "module";
 import { mkdirSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 
-const require = createRequire("<PLAYWRIGHT_ROOT>/package.json");
-const { chromium } = require("playwright");
+import { chromium } from "./_playwright.mjs";
 
 const out = join(dirname(fileURLToPath(import.meta.url)), "..", ".verify");
 mkdirSync(out, { recursive: true });

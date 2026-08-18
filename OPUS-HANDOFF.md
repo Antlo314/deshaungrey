@@ -107,7 +107,7 @@ the end of `globals.css` — add new block selectors there if a kicker ever turn
 - The React purity lint (react-hooks/purity) flags `Date.now()` in server components; use `lib/time.ts` `nowMs()`.
 - Server actions that `redirect()` inside a try/catch must `unstable_rethrow(e)` first (see `wrap()` in `lib/actions/admin.ts`).
 - Playwright screenshots: the in-app Browser pane does not composite when hidden — use `scripts/verify-viewports.mjs`
-  (Playwright from `<PLAYWRIGHT_ROOT>`).
+  (Playwright is resolved by `scripts/_playwright.mjs`: local install, `PLAYWRIGHT_ROOT`, or a sibling checkout).
 - The Next dev-tools badge sits over the sidebar "Sign out" button in dev; e2e uses `form.requestSubmit()`.
 - Windows: PowerShell `Move-Item` of a folder open as a shell cwd fails "in use"; robocopy /MOVE after `attrib -R` finished the
   DashawnGrey → MEG/artists/DashaunGrey move. Git repo verified intact (`git fsck`).
