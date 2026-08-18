@@ -50,7 +50,11 @@ A palette pass is a `:root` edit. Keep gold as metal, not neon.
    also carry a soft text-shadow, and `.featured` uses `--gold-hi`. Sticky pin + scroll-scrubbed video on desktop. Still + loop on mobile. Ghost numeral, 3D-tilt cover with rotating text badge (click = play), DSP row + Share (Web Share / clipboard).
 6. `Player` — **real Web Audio analyser** drives the 28 bars (CSS pulse fallback if the AudioContext fails), spinning disc, progress ring, `PREVIEW_CAP = 30`.
 7. `MiniPlayer` — fixed bottom-left now-playing bar. Shows once a preview has started **and** its source `.player` is off-screen. Toggles through `player-store.toggleCurrent()`.
-8. `Album` — `#album`. World of Grey teaser: animated "shades" wash, swatches, meta grid, italic genre marquee, notify (`interest: "album"`).
+8. `Album` — `#album`. A Seedance ink loop (`/media/album/world-of-grey.mp4`, 1024×576,
+   20s boomerang so it wraps seamlessly, ~1.5MB) plays behind the type. It is mounted only
+   when the section is within 60% of the viewport and only on desktop `useCinema`, so it
+   costs nothing on mobile or above the fold. `.album::after` lays a two-axis scrim over it
+   so copy contrast never depends on the video. World of Grey teaser: animated "shades" wash, swatches, meta grid, italic genre marquee, notify (`interest: "album"`).
 9. `About` — `#about`. Sticky official portrait with scroll parallax, copy, quote, **stats strip** and **timeline** (`lib/catalog.ts` → `stats`, `timeline`).
 10. `Label` — `#label`. **MEG Enterprises** from `meg.txt` → `lib/catalog.ts` → `label`: intro, 30+ numeral, track-record list, "The next generation · 2019" hand-off, founder credit (Dr. Glenda S. Williams).
 11. `MerchGrid` — `#merch`. World filter tabs, hover quick-notify, sizes, uniform 1:1 tiles. Six SKUs from `lib/catalog.ts`.
@@ -175,7 +179,28 @@ speaker boost on.
 | `/prints/*.svg` | Printful print files |
 | `/media/og.jpg` | Share card |
 
-Ken Burns mp4s were built locally with ffmpeg. Swap the plates any time — keep 1920×1080, ~6s, no audio.
+### Video plates
+
+| File | Source | Notes |
+|---|---|---|
+| `/media/hero/hero.mp4` | ffmpeg Ken Burns off `hero-still-4k.jpg` | loops, autoplay |
+| `/media/plates/show-me.mp4` | ffmpeg Ken Burns off `show-me-4k.jpg` | **scroll-scrubbed** |
+| `/media/plates/wtda.mp4` | ffmpeg Ken Burns off `wtda-4k.jpg` | **scroll-scrubbed** |
+| `/media/album/world-of-grey.mp4` | Seedance, boomerang loop | lazy-mounted, desktop only |
+
+The two chapter plates are **scrubbed by scroll**, not played, so they are encoded with
+`-g 8` (keyframe every 8 frames). A default GOP makes seeking coarse and slow — if you
+re-encode them, keep the small GOP.
+
+Swap any plate: 1920×1080, ~6s, no audio, continuous motion with no cuts (it has to read
+correctly scrubbed **backwards** too).
+
+A Seedance take on the WTDA chapter is parked at
+`private/masters/seedance/wtda-tightcrop-1080.mp4`. It is unused: the source was portrait
+832×1104, and cropping it to 16:9 pushes the newspaper's "Where Dem Dollars At" headline
+dead-centre at full size, colliding with the section's own H2 and the cover card — the same
+words three times in one viewport. Use it only if a 16:9 re-render frames the headline small
+or out of frame.
 
 ## Verify
 

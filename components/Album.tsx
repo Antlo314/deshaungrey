@@ -1,7 +1,8 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { artist } from "@/lib/catalog";
+import { useCinema } from "@/lib/useCinema";
 import { Icon } from "./Icons";
 
 const GENRES = ["R&B", "Hip-Hop", "Pop", "Reggae", "Dance", "Afrocentric", "Love", "Life", "Culture", "Celebration", "Evolution"];
@@ -9,6 +10,26 @@ const GENRES = ["R&B", "Hip-Hop", "Pop", "Reggae", "Dance", "Afrocentric", "Love
 /** World of Grey — the album teaser. Notify goes to /api/notify with interest=album. */
 export function Album() {
   const [status, setStatus] = useState<"idle" | "busy" | "ok" | "err">("idle");
+  const cinema = useCinema();
+  const section = useRef<HTMLElement | null>(null);
+  // only fetch the 1.5MB ink loop once the section is nearly in view
+  const [near, setNear] = useState(false);
+
+  useEffect(() => {
+    const el = section.current;
+    if (!el || !cinema) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          setNear(true);
+          io.disconnect();
+        }
+      },
+      { rootMargin: "60% 0px" }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [cinema]);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -29,7 +50,21 @@ export function Album() {
   }
 
   return (
-    <section className="album" id="album">
+    <section className="album" id="album" ref={section}>
+      {near ? (
+        <video
+          className="album-video"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="none"
+          poster="/media/album/world-of-grey-poster.jpg"
+          aria-hidden
+        >
+          <source src="/media/album/world-of-grey.mp4" type="video/mp4" />
+        </video>
+      ) : null}
       <div className="album-shades" aria-hidden />
       <div className="album-inner">
         <div>

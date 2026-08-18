@@ -950,6 +950,27 @@ section { position: relative; }
   overflow: hidden;
   border-top: 1px solid var(--hair-soft);
 }
+/* Seedance ink loop behind the album teaser; the shades layer sits on top of it
+   and the copy sits on top of that, so type contrast never depends on the video. */
+.album-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.85;
+  pointer-events: none;
+}
+.album::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(7,7,8,0.9) 0%, rgba(7,7,8,0.6) 42%, rgba(7,7,8,0.25) 70%, rgba(7,7,8,0.5) 100%),
+    linear-gradient(180deg, rgba(7,7,8,0.75) 0%, rgba(7,7,8,0.15) 35%, rgba(7,7,8,0.85) 100%);
+}
+.album-inner, .genres { position: relative; z-index: 2; }
 .album-shades {
   position: absolute;
   inset: 0;
@@ -959,7 +980,7 @@ section { position: relative; }
     radial-gradient(40% 60% at 60% 20%, rgba(242,193,200,0.1), transparent 60%);
   filter: blur(40px);
   animation: shades 18s ease-in-out infinite alternate;
-  opacity: 0.9;
+  opacity: 0.5;
 }
 @keyframes shades {
   0% { transform: translate3d(0,0,0) scale(1); }
