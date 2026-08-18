@@ -5,6 +5,39 @@ export const VOICE_TIMEOUT_MS = 15 * 60 * 1000;
 export const VOICE_DAILY_SIGNED_URL_CAP = 400;
 export const COOKIE_NAME = "dg_ash";
 
+/**
+ * Spoken replies per visit. ASH always answers in text; this only caps how many
+ * of those answers get sent to ElevenLabs, so the key cannot be drained by one
+ * visitor holding a conversation.
+ */
+export const VOICE_REPLY_CAP = 10;
+
+type ReplyBucket = { spoken: number; day: string };
+const replies = new Map<string, ReplyBucket>();
+
+function replyBucket(id: string): ReplyBucket {
+  const today = dayKey();
+  const existing = replies.get(id);
+  if (!existing || existing.day !== today) {
+    const fresh = { spoken: 0, day: today };
+    replies.set(id, fresh);
+    return fresh;
+  }
+  return existing;
+}
+
+export function voiceRepliesLeft(id: string) {
+  return Math.max(0, VOICE_REPLY_CAP - replyBucket(id).spoken);
+}
+
+/** Spends one spoken reply. Returns the remaining count, or null if exhausted. */
+export function consumeVoiceReply(id: string) {
+  const b = replyBucket(id);
+  if (b.spoken >= VOICE_REPLY_CAP) return null;
+  b.spoken += 1;
+  return VOICE_REPLY_CAP - b.spoken;
+}
+
 type Bucket = {
   turns: number;
   timeoutUntil: number;

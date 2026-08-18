@@ -63,6 +63,18 @@ export const Icon = {
       <path d="M6 6l12 12M18 6L6 18" />
     </svg>
   ),
+  speaker: (p: P) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M4 9v6h3l5 4V5L7 9H4Z" />
+      <path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" />
+    </svg>
+  ),
+  speakerOff: (p: P) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" {...p}>
+      <path d="M4 9v6h3l5 4V5L7 9H4Z" />
+      <path d="M16 9.5l5 5M21 9.5l-5 5" />
+    </svg>
+  ),
   mic: (p: P) => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" {...p}>
       <rect x="9" y="3" width="6" height="11" rx="3" />

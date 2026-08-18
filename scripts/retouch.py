@@ -264,3 +264,18 @@ process(
     grain_rect=(1815, 330, 1935, 425),
     seam_strength=0.5,
 )
+
+
+# ============================================ ABOUT portrait (1023x1537)
+# A faint cross motif inside the framed print over his left shoulder. The frame
+# interior is a near-uniform dark panel, so the harmonic fill closes it cleanly.
+process(
+    "portrait.png",
+    os.path.join(ORIG, "about__portrait.png"),
+    remove=[
+        [(835, 330), (955, 330), (955, 510), (835, 510)],
+    ],
+    donor_rows=(282, 328),       # clean frame interior directly above the motif
+    grain_rect=(840, 282, 950, 328),
+    seam_strength=0.35,
+)

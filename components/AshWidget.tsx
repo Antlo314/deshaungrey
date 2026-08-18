@@ -64,6 +64,12 @@ export function AshWidget() {
   const [speaking, setSpeaking] = useState(false);
   const [thinking, setThinking] = useState(false);
   const [listening, setListening] = useState(false);
+  // Her voice costs ElevenLabs credit, so it is a toggle and it is capped per visit.
+  // Text answers are always free and always available.
+  const [voiceOn, setVoiceOn] = useState(true);
+  const [voiceLeft, setVoiceLeft] = useState<number | null>(null);
+  const [voiceCap, setVoiceCap] = useState(10);
+  const [voiceWired, setVoiceWired] = useState(true);
   // read once during render: speech support is a static browser capability
   const [canListen] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -89,6 +95,14 @@ export function AshWidget() {
     fetch("/api/voice/quota")
       .then((r) => r.json())
       .then((q: Quota) => setQuota(q))
+      .catch(() => undefined);
+    fetch("/api/ash/speak")
+      .then((r) => r.json())
+      .then((v: { left: number; cap: number; wired: boolean }) => {
+        setVoiceLeft(v.left);
+        setVoiceCap(v.cap);
+        setVoiceWired(v.wired);
+      })
       .catch(() => undefined);
   }, []);
 
@@ -195,6 +209,7 @@ export function AshWidget() {
 
   function playClip(src: string, fallback: string) {
     setLine(fallback);
+    if (!voiceOn) return;              // cached clips are free but respect the toggle
     audioRef.current?.pause();
     const audio = new Audio(src);
     audioRef.current = audio;
@@ -203,15 +218,22 @@ export function AshWidget() {
     audio.play().catch(() => undefined);
   }
 
-  /** Speaks arbitrary text through the server TTS route. */
+  /** Speaks arbitrary text through the server TTS route, if voice is on and left. */
   async function speak(text: string) {
+    if (!voiceOn || !voiceWired) return;
+    if (voiceLeft !== null && voiceLeft <= 0) return;
     try {
       const res = await fetch("/api/ash/speak", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text }),
       });
-      if (!res.ok) return;
+      if (!res.ok) {
+        if (res.status === 429) setVoiceLeft(0);
+        return;
+      }
+      const left = res.headers.get("X-Ash-Voice-Left");
+      if (left !== null) setVoiceLeft(Number(left));
       const url = URL.createObjectURL(await res.blob());
       audioRef.current?.pause();
       const audio = new Audio(url);
@@ -389,6 +411,26 @@ export function AshWidget() {
                 {status}
               </div>
             </div>
+            <button
+              className={`ash-voice ${voiceOn && voiceWired ? "on" : ""}`}
+              onClick={() => setVoiceOn((v) => !v)}
+              aria-pressed={voiceOn}
+              disabled={!voiceWired}
+              title={
+                !voiceWired
+                  ? "Voice not configured"
+                  : voiceOn
+                    ? "Mute ASH's voice"
+                    : "Let ASH speak"
+              }
+              aria-label={voiceOn ? "Mute ASH's voice" : "Let ASH speak"}
+            >
+              {voiceOn && voiceWired ? (
+                <Icon.speaker style={{ width: 15, height: 15 }} />
+              ) : (
+                <Icon.speakerOff style={{ width: 15, height: 15 }} />
+              )}
+            </button>
             <button className="ash-close" onClick={() => setOpen(false)} aria-label="Close">
               <Icon.close style={{ width: 14, height: 14 }} />
             </button>
@@ -457,13 +499,17 @@ export function AshWidget() {
             <div ref={widgetHost} className="ash-host" />
 
             <div className="pips" aria-hidden>
-              {Array.from({ length: cap }, (_, i) => (
-                <i key={i} className={i < remaining ? "on" : ""} />
+              {Array.from({ length: voiceCap }, (_, i) => (
+                <i key={i} className={i < (voiceLeft ?? voiceCap) ? "on" : ""} />
               ))}
             </div>
             <div className="ash-quota">
-              <span>{remaining} of {cap} live calls left</span>
-              <span>{quota?.timedOut ? "Cooling down" : "This visit"}</span>
+              <span>
+                {voiceWired
+                  ? `${voiceLeft ?? voiceCap} of ${voiceCap} spoken replies left`
+                  : "Text answers · voice not configured"}
+              </span>
+              <span>{voiceOn ? "Voice on" : "Voice off"}</span>
             </div>
           </div>
         </div>

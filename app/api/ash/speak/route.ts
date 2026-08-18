@@ -1,12 +1,18 @@
-import { COOKIE_NAME, visitorKey } from "@/lib/quota";
+import {
+  COOKIE_NAME,
+  VOICE_REPLY_CAP,
+  consumeVoiceReply,
+  visitorKey,
+  voiceRepliesLeft,
+} from "@/lib/quota";
 
 export const runtime = "nodejs";
 
 const MAX_CHARS = 400;
-const DAILY_CHAR_CAP = 120_000; // ~ a few hundred replies; keeps TTS spend bounded
+const DAILY_CHAR_CAP = 120_000; // global ceiling on top of the per-visit reply cap
 const gate = { day: "", chars: 0 };
 
-function allow(n: number) {
+function allowChars(n: number) {
   const today = new Date().toISOString().slice(0, 10);
   if (gate.day !== today) {
     gate.day = today;
@@ -26,9 +32,26 @@ function parseCookie(raw: string) {
   return out;
 }
 
+function who(req: Request) {
+  const cookies = parseCookie(req.headers.get("cookie") || "");
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "0.0.0.0";
+  const ua = req.headers.get("user-agent") || "unknown";
+  return cookies[COOKIE_NAME] || visitorKey(ip, ua);
+}
+
+/** How many spoken replies this visitor has left — costs nothing to ask. */
+export async function GET(req: Request) {
+  const id = who(req);
+  return Response.json({
+    left: voiceRepliesLeft(id),
+    cap: VOICE_REPLY_CAP,
+    wired: Boolean(process.env.ELEVENLABS_API_KEY && process.env.ELEVENLABS_VOICE_ID),
+  });
+}
+
 /**
  * Speaks ASH's reply. The ElevenLabs key stays server-side; the browser only
- * ever receives audio bytes.
+ * ever receives audio bytes. Capped per visit so one visitor cannot drain it.
  */
 export async function POST(req: Request) {
   const body = (await req.json().catch(() => ({}))) as { text?: string };
@@ -38,13 +61,18 @@ export async function POST(req: Request) {
   const key = process.env.ELEVENLABS_API_KEY;
   const voice = process.env.ELEVENLABS_VOICE_ID;
   if (!key || !voice) return new Response("voice_unwired", { status: 503 });
-  if (!allow(text.length)) return new Response("daily_cap", { status: 429 });
 
-  // touch the visitor id so voice usage is attributable to a session
-  const cookies = parseCookie(req.headers.get("cookie") || "");
-  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "0.0.0.0";
-  const ua = req.headers.get("user-agent") || "unknown";
-  const id = cookies[COOKIE_NAME] || visitorKey(ip, ua);
+  const id = who(req);
+  const left = consumeVoiceReply(id);
+  if (left === null) {
+    return Response.json(
+      { reason: "voice_cap", left: 0, cap: VOICE_REPLY_CAP },
+      { status: 429 }
+    );
+  }
+  if (!allowChars(text.length)) {
+    return Response.json({ reason: "daily_cap", left, cap: VOICE_REPLY_CAP }, { status: 429 });
+  }
 
   try {
     const res = await fetch(
@@ -75,7 +103,8 @@ export async function POST(req: Request) {
       headers: {
         "Content-Type": "audio/mpeg",
         "Cache-Control": "no-store",
-        "X-Ash-Session": id.slice(0, 8),
+        "X-Ash-Voice-Left": String(left),
+        "X-Ash-Voice-Cap": String(VOICE_REPLY_CAP),
       },
     });
   } catch {

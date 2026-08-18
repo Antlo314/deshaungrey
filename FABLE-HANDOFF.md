@@ -86,13 +86,22 @@ A palette pass is a `:root` edit. Keep gold as metal, not neon.
 
 - `POST /api/ash/ask` → `{ answer }`, three tiers:
   1. `lib/ash-brain.ts` — a grounded rule set covering tour/Grammy/Billboard/album/singles/
-     merch/label/FaSho/name-change/illness/hometown/streaming. **Works with no API keys, free.**
+     merch/label/FaSho/name-change/illness/hometown/streaming/**booking**. Works with no API
+     keys, free. The booking rule is hoisted near the top so "how do I contact Dashaun Grey"
+     does not fall through to the bio rule. **TODO in `ash-brain.ts`: swap in MEG's real
+     booking contact.** Until then she routes people to the list and never invents an address,
+     a fee, or availability.
   2. If `ANTHROPIC_API_KEY` is set, Claude answers with `SYSTEM_PROMPT` + `FACT_SHEET` as its
      ONLY source of truth (capped at 500 calls/day). It cannot invent dates or call him a
      Grammy winner — the prompt forbids both.
   3. Otherwise she deflects in character rather than dead-ending.
 - `POST /api/ash/speak` → `audio/mpeg` from ElevenLabs TTS. Server-side only, so the key is
-  never exposed; 400 chars/request, 120k chars/day.
+  never exposed. **Capped at `VOICE_REPLY_CAP = 10` spoken replies per visitor per day**
+  (`lib/quota.ts`), plus 400 chars/request and 120k chars/day globally. `GET` on the same
+  route reports `{ left, cap, wired }` for free. Text answers are never capped — muting or
+  running out only removes the audio.
+- The panel header has a **speaker toggle**. Off = no TTS calls at all, including the cached
+  greeting. The meter and pips track spoken replies, since that is the budget visitors spend.
 - The panel has a conversation log, a text composer, and a **mic button** (Web Speech API,
   shown only where supported) so she can literally be spoken to. Replies are spoken back and
   the orb pulses with them.

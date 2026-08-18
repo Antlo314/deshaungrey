@@ -1059,7 +1059,7 @@ section { position: relative; }
   overflow: hidden;
 }
 .about-photo img {
-  width: 100%; height: 100%; object-fit: cover; object-position: center 15%;
+  width: 100%; height: 100%; object-fit: cover; object-position: center 8%;
   transform: translate3d(0, calc(var(--py, 0) * -6%), 0) scale(1.12);
   will-change: transform;
 }
@@ -1586,6 +1586,22 @@ section { position: relative; }
 }
 .ash-status i { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); animation: blink 1.4s ease-in-out infinite; }
 .ash-status.live i { background: #6fdc8c; box-shadow: 0 0 10px #6fdc8c; }
+.ash-voice {
+  background: none;
+  border: 1px solid var(--hair-soft);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: var(--mute);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: all 0.3s;
+}
+.ash-voice.on { color: var(--gold); border-color: rgba(201,164,106,0.5); }
+.ash-voice:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
+.ash-voice:disabled { opacity: 0.35; cursor: not-allowed; }
+.ash-head { gap: 10px; }
 .ash-close {
   background: none; border: 1px solid var(--hair-soft); width: 32px; height: 32px; border-radius: 50%;
   color: var(--mute); cursor: pointer; display: grid; place-items: center; transition: all 0.3s;
@@ -1793,14 +1809,14 @@ section { position: relative; }
     position: static;          /* never pin behind the copy on a stacked layout */
     min-height: 0;
     height: auto;
-    aspect-ratio: 5 / 4;
+    aspect-ratio: 4 / 5;       /* portrait box so the full head and torso fit */
   }
   .about-copy {
     position: relative;
     z-index: 1;
     background: var(--void);   /* copy always has its own ground */
   }
-  .about-photo img { object-position: center 20%; transform: none; }
+  .about-photo img { object-position: center 6%; transform: none; }
   .about-copy { padding: 32px var(--gutter) 56px; }
   .about h2 { font-size: clamp(36px, 12vw, 56px); }
   .about blockquote { font-size: 20px; }
