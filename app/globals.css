@@ -1564,7 +1564,9 @@ section { position: relative; }
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   padding: 0;
-  overflow: hidden;
+  max-height: calc(100svh - 124px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   transform-origin: 100% 100%;
   animation: panel-in 0.6s var(--ease-out);
   box-shadow: 0 30px 80px rgba(0,0,0,0.6);
@@ -1787,7 +1789,17 @@ section { position: relative; }
   .genres-track { font-size: 22px; }
 
   .about { grid-template-columns: 1fr; }
-  .about-photo { min-height: 0; height: auto; aspect-ratio: 5 / 4; }
+  .about-photo {
+    position: static;          /* never pin behind the copy on a stacked layout */
+    min-height: 0;
+    height: auto;
+    aspect-ratio: 5 / 4;
+  }
+  .about-copy {
+    position: relative;
+    z-index: 1;
+    background: var(--void);   /* copy always has its own ground */
+  }
   .about-photo img { object-position: center 20%; transform: none; }
   .about-copy { padding: 32px var(--gutter) 56px; }
   .about h2 { font-size: clamp(36px, 12vw, 56px); }
@@ -1831,7 +1843,7 @@ section { position: relative; }
   .field input { font-size: 16px; }
   .tour-note { flex-direction: column; gap: 10px; }
 
-  .site-footer { padding: 48px var(--gutter) calc(96px + env(safe-area-inset-bottom)); }
+  .site-footer { padding: 48px var(--gutter) calc(152px + env(safe-area-inset-bottom)); }
   .foot-grid { grid-template-columns: 1fr 1fr; gap: 28px; margin-bottom: 36px; }
   .foot-brand { grid-column: 1 / -1; }
   .foot-mark { font-size: 26vw; }
@@ -1889,6 +1901,20 @@ section { position: relative; }
 @media (max-width: 340px) {
   .grid { grid-template-columns: 1fr; }
   .dock a { padding: 0 10px; }
+}
+
+/* short viewports (phone landscape): keep ASH fully on screen */
+@media (max-height: 520px) {
+  .ash-orb { width: 52px; height: 52px; }
+  .ash-panel {
+    bottom: 66px;
+    /* the panel is anchored to .ash, which itself sits 14px off the bottom */
+    max-height: calc(100svh - 98px);
+  }
+  .ash-scroll { max-height: 30vh; }
+  .chips { display: none; }
+  .pips, .ash-quota { display: none; }
+  .hero { min-height: 420px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
