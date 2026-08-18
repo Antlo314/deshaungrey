@@ -54,13 +54,12 @@ export function MerchGrid() {
               className={`card reveal ${hidden ? "hide" : ""}`}
               key={item.id}
               style={{ ["--d" as string]: `${(i % 3) * 0.08}s` }}
-              data-cursor="View"
             >
               <div className={`card-img ${item.kind === "poster" ? "poster" : ""}`}>
                 <span className={`card-tag ${item.world}`}>{item.world === "showme" ? "Show Me" : "WTDA"}</span>
                 <img
                   src={item.imageMobile}
-                  srcSet={`${item.imageMobile} 900w, ${item.image} 1600w`}
+                  srcSet={`${item.imageMobile} 900w, ${item.image} 2048w`}
                   sizes="(max-width: 419px) 100vw, (max-width: 900px) 50vw, 33vw"
                   alt={item.title}
                   loading="lazy"

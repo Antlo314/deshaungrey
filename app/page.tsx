@@ -1,10 +1,10 @@
 import { singles } from "@/lib/catalog";
 import { Effects } from "@/components/Effects";
 import { Preloader } from "@/components/Preloader";
-import { Cursor } from "@/components/Cursor";
 import { Nav } from "@/components/Nav";
 import { Hero } from "@/components/Hero";
 import { Ticker } from "@/components/Ticker";
+import { Honors } from "@/components/Honors";
 import { Chapter } from "@/components/Chapter";
 import { Album } from "@/components/Album";
 import { About } from "@/components/About";
@@ -24,6 +24,7 @@ export default function Page() {
       <Nav />
       <Hero />
       <Ticker />
+      <Honors />
       {singles.map((track, i) => (
         <Chapter key={track.id} track={track} index={i} />
       ))}
@@ -36,7 +37,6 @@ export default function Page() {
       <MiniPlayer />
       <Dock />
       <AshWidget />
-      <Cursor />
     </main>
   );
 }

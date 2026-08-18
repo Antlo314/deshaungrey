@@ -8,6 +8,7 @@ import { scrollToId } from "./Effects";
 
 const LINKS = [
   { id: "music", label: "Music" },
+  { id: "honors", label: "Honors" },
   { id: "album", label: "Album" },
   { id: "about", label: "About" },
   { id: "label", label: "Label" },

@@ -8,8 +8,10 @@ export type Single = {
   preview: string;
   cover: string;
   coverMobile: string;
+  cover4k: string;
   plate: string;
   plateMobile: string;
+  plate4k: string;
   plateVideo: string;
   sku: string;
   price: Money;
@@ -54,8 +56,10 @@ export const singles: Single[] = [
     preview: "/audio/previews/show-me.m4a",
     cover: "/media/covers/show-me.jpg",
     coverMobile: "/media/covers/show-me-m.jpg",
+    cover4k: "/media/covers/show-me-4k.jpg",
     plate: "/media/plates/show-me.jpg",
     plateMobile: "/media/plates/show-me-m.jpg",
+    plate4k: "/media/plates/show-me-4k.jpg",
     plateVideo: "/media/plates/show-me.mp4",
     sku: "single-show-me",
     price: { cents: 199, label: "$1.99" },
@@ -71,8 +75,10 @@ export const singles: Single[] = [
     preview: "/audio/previews/wtda.m4a",
     cover: "/media/covers/wtda.jpg",
     coverMobile: "/media/covers/wtda-m.jpg",
+    cover4k: "/media/covers/wtda-4k.jpg",
     plate: "/media/plates/wtda.jpg",
     plateMobile: "/media/plates/wtda-m.jpg",
+    plate4k: "/media/plates/wtda-4k.jpg",
     plateVideo: "/media/plates/wtda.mp4",
     sku: "single-wtda",
     price: { cents: 199, label: "$1.99" },
@@ -178,6 +184,40 @@ export const dsps: Dsp[] = [
   { id: "tidal", label: "Tidal", href: "#" },
   { id: "amazon", label: "Amazon", href: "#" },
 ];
+
+/**
+ * Honors — sourced from the official bio. Wording is deliberate:
+ * "Grammy ballot consideration", not a win. Do not inflate.
+ */
+export const honors = [
+  {
+    id: "grammy",
+    title: "Grammy Ballot",
+    sub: "2011 · Three categories",
+    detail: "Best R&B Performance by a Duo or Group · Best R&B Song · Best Contemporary R&B Album",
+  },
+  {
+    id: "billboard",
+    title: "Billboard",
+    sub: "Hot R&B · Hot Pop · Greatest Gainer",
+    detail: "“I’m Wit It” ft. Slick Pulla — 2011",
+  },
+  {
+    id: "warner",
+    title: "Signed at 14",
+    sub: "Warner Bros. subsidiary · 2003",
+    detail: "FaSho — the four-man group that built him",
+  },
+  {
+    id: "screen",
+    title: "Screen & Brand",
+    sub: "MTV · Film · Adidas",
+    detail: "MTV True Life · Joyful Noise · The Other Side · Rules · Adidas · 2T Water · Good Denim",
+  },
+];
+
+/** "As seen" wordmarks for the hero press bar. Text only — no third-party logos. */
+export const press = ["Billboard", "MTV", "Adidas", "ACE Magazine", "2T Water"];
 
 /** Career facts surfaced in About. Sourced from the official bio. */
 export const stats = [

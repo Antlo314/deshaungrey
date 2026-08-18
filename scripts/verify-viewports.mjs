@@ -43,6 +43,7 @@ async function shotSection(p, sel, name, settle = 900) {
 const SECTIONS = [
   ["#top", "hero"],
   ["#music", "music"],
+  ["#honors", "honors"],
   ["#wtda", "wtda"],
   ["#album", "album"],
   ["#about", "about"],

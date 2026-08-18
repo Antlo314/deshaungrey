@@ -7,6 +7,8 @@ export function Ticker() {
     "Tour Soon",
     "Loris to the World",
     "ASH is listening",
+    "Billboard Hot R&B",
+    "Grammy Ballot 2011",
     "MEG Enterprises",
   ];
   const line = [...bits, ...bits];

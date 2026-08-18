@@ -110,7 +110,7 @@ export function Chapter({ track, index }: { track: Single; index: number }) {
           ) : (
             <img
               src={track.plateMobile}
-              srcSet={`${track.plateMobile} 1200w, ${track.plate} 1920w`}
+              srcSet={`${track.plateMobile} 1200w, ${track.plate} 1920w, ${track.plate4k} 3840w`}
               sizes="100vw"
               alt=""
               loading="lazy"
@@ -124,11 +124,10 @@ export function Chapter({ track, index }: { track: Single; index: number }) {
           className="chapter-cover reveal"
           style={{ ["--d" as string]: "0.2s" }}
           aria-hidden
-          data-cursor="Play"
           onClick={() => root.current?.querySelector<HTMLButtonElement>(".player .play")?.click()}
         >
           <div className="tilt" ref={tilt}>
-            <img src={track.coverMobile} srcSet={`${track.coverMobile} 800w, ${track.cover} 1600w`} sizes="300px" alt="" loading="lazy" />
+            <img src={track.coverMobile} srcSet={`${track.coverMobile} 800w, ${track.cover} 2048w`} sizes="300px" alt="" loading="lazy" />
             <svg className="badge-rot" viewBox="0 0 112 112">
               <defs>
                 <path id={`ring-${track.id}`} d="M56,56 m-42,0 a42,42 0 1,1 84,0 a42,42 0 1,1 -84,0" />

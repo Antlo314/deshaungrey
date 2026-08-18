@@ -65,6 +65,7 @@ export function Preloader() {
 
   return (
     <div className={`preloader ${out ? "out" : ""}`} aria-hidden>
+      <div className="preloader-presents">MEG Enterprises presents</div>
       <div className="preloader-word">
         {Array.from(WORD).map((ch, i) => (
           <span key={i} style={{ ["--i" as string]: i }} className={i >= 9 ? "g" : ""}>

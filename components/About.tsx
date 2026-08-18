@@ -32,7 +32,7 @@ export function About() {
       <div className="about-photo reveal-img" ref={photo}>
         <img
           src="/media/about/portrait-m.jpg"
-          srcSet="/media/about/portrait-m.jpg 900w, /media/about/portrait.png 1600w"
+          srcSet="/media/about/portrait-m.jpg 900w, /media/about/portrait.jpg 1600w, /media/about/portrait-4k.jpg 2560w"
           sizes="(max-width: 900px) 100vw, 50vw"
           alt="Dashaun Grey in a windowpane tuxedo"
           loading="lazy"

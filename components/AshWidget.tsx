@@ -317,8 +317,7 @@ export function AshWidget() {
         onClick={() => { setOpen((v) => !v); setTease(false); }}
         aria-label={open ? "Close ASH" : "Talk to ASH"}
         aria-expanded={open}
-        data-cursor={open ? "Close" : "ASH"}
-      >
+>
         <span className="halo" aria-hidden />
         <span className="halo two" aria-hidden />
         <span className="live" aria-hidden />

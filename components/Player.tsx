@@ -135,7 +135,7 @@ export function Player({ track }: { track: Single }) {
         <img
           className="player-art disc"
           src={track.coverMobile}
-          srcSet={`${track.coverMobile} 800w, ${track.cover} 1600w`}
+          srcSet={`${track.coverMobile} 800w, ${track.cover} 2048w`}
           sizes="76px"
           alt={`${track.title} cover`}
         />
@@ -155,8 +155,7 @@ export function Player({ track }: { track: Single }) {
         className="play"
         onClick={toggle}
         aria-label={playing ? "Pause preview" : "Play preview"}
-        data-cursor={playing ? "Pause" : "Play"}
-      >
+>
         <svg className="ring" viewBox="0 0 56 56" aria-hidden>
           <circle className="bg" cx="28" cy="28" r={R} />
           <circle

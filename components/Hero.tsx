@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { artist, dsps } from "@/lib/catalog";
+import { artist, dsps, press } from "@/lib/catalog";
 import { useCinema } from "@/lib/useCinema";
 import { letters } from "@/lib/motion";
 import { Icon } from "./Icons";
@@ -9,41 +8,12 @@ import { scrollToId } from "./Effects";
 
 export function Hero() {
   const cinema = useCinema();
-  const root = useRef<HTMLElement | null>(null);
-
-  // mouse parallax on the plate
-  useEffect(() => {
-    const el = root.current;
-    if (!el || !window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
-    let raf = 0;
-    const onMove = (e: MouseEvent) => {
-      const r = el.getBoundingClientRect();
-      const mx = ((e.clientX - r.left) / r.width - 0.5) * 2;
-      const my = ((e.clientY - r.top) / r.height - 0.5) * 2;
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => {
-        el.style.setProperty("--mx", mx.toFixed(3));
-        el.style.setProperty("--my", my.toFixed(3));
-      });
-    };
-    const onLeave = () => {
-      el.style.setProperty("--mx", "0");
-      el.style.setProperty("--my", "0");
-    };
-    el.addEventListener("mousemove", onMove, { passive: true });
-    el.addEventListener("mouseleave", onLeave);
-    return () => {
-      el.removeEventListener("mousemove", onMove);
-      el.removeEventListener("mouseleave", onLeave);
-      cancelAnimationFrame(raf);
-    };
-  }, []);
 
   const first = letters("Dashaun");
   const last = letters("Grey", first.length);
 
   return (
-    <section className="hero" id="top" ref={root}>
+    <section className="hero" id="top">
       <div className="hero-media">
         {cinema ? (
           <video autoPlay muted playsInline loop preload="auto" poster="/media/hero/hero-still.jpg">
@@ -52,7 +22,7 @@ export function Hero() {
         ) : (
           <img
             src="/media/hero/hero-still-m.jpg"
-            srcSet="/media/hero/hero-still-m.jpg 1200w, /media/hero/hero-still.jpg 1920w"
+            srcSet="/media/hero/hero-still-m.jpg 1200w, /media/hero/hero-still.jpg 1920w, /media/hero/hero-still-4k.jpg 3840w"
             sizes="100vw"
             alt="Dashaun Grey"
             fetchPriority="high"
@@ -72,7 +42,7 @@ export function Hero() {
 
       <div className="hero-copy">
         <p className="kicker dot hero-fade" style={{ ["--d" as string]: "0.35s" }}>
-          MEG Enterprises · World of Grey
+          MEG Enterprises presents · World of Grey
         </p>
         <h1 aria-label={artist.name}>
           <span className="row" aria-hidden>
@@ -97,7 +67,6 @@ export function Hero() {
           <a
             className="btn solid"
             href="#music"
-            data-cursor="Play"
             onClick={(e) => {
               e.preventDefault();
               scrollToId("music");
@@ -123,6 +92,15 @@ export function Hero() {
       <div className="hero-scroll hero-fade" style={{ ["--d" as string]: "1.4s" }} aria-hidden>
         Scroll
         <i />
+      </div>
+
+      <div className="hero-press hero-fade" style={{ ["--d" as string]: "1.5s" }} aria-label="As seen">
+        <span className="lbl">As seen</span>
+        <div className="marks">
+          {press.map((p) => (
+            <span key={p}>{p}</span>
+          ))}
+        </div>
       </div>
     </section>
   );

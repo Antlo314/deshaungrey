@@ -32,7 +32,7 @@ A palette pass is a `:root` edit. Keep gold as metal, not neon.
 - **Preloader** (`Preloader.tsx`) — "WORLD OF GREY" letters + counter, once per session (`sessionStorage.dg_intro`). Sets `html.ready`, which fires the hero letter reveal (`.st > span`).
 - **Smooth scroll** — Lenis, desktop fine-pointer only, off for `prefers-reduced-motion`. `window.__lenis` exposed; use `scrollToId()` from `Effects.tsx` for in-page jumps.
 - **Reveal on scroll** — add `.reveal`, `.reveal-clip`, `.reveal-x`, `.reveal-img`, `.reveal-lines`, or `.st` to any element; `useRevealObserver` (root, in `Effects`) adds `.in`. Stagger with `style={{"--d": "0.1s"}}`. Threshold is 0 on purpose: Chrome reports ratio 0 for `clip-path`'d targets.
-- **Custom cursor** (`Cursor.tsx`) — gold dot + lagging ring, fine pointer only. `data-cursor="Play"` on any element shows a filled label ring.
+- **No custom cursor / mouse-follow.** Removed by request. The only pointer-driven motion left is the 3D tilt on the chapter cover art (hover-contained).
 - **Scroll progress** — 2px gold hairline at top (`.progress`).
 - **Grain + vignette** — fixed overlays, grain is stepped-animated on desktop only.
 - Reduced motion collapses every animation and shows content immediately (see the `@media (prefers-reduced-motion)` block and the `<noscript>` style in `layout.tsx`).
@@ -41,8 +41,9 @@ A palette pass is a `:root` edit. Keep gold as metal, not neon.
 
 1. `Preloader`, `Effects` (Lenis + progress + reveal observer)
 2. `Nav` — fixed, hides on scroll-down / shows on scroll-up, blurs after 40px, active-section underline, **Listen** DSP dropdown, "Talk to Ash" opens the widget. Mobile: mark + Listen only; the `Dock` (bottom-left pill: Music / Merch / Tour) takes over.
-3. `Hero` — 100svh cinema. Video `#top`. Letter reveal, mouse parallax on the plate, "New singles out now" badge, vertical side label, DSP row, animated scroll cue.
+3. `Hero` — 100svh cinema. Video `#top`. Letter reveal, "New singles out now" badge, vertical side label, DSP row, animated scroll cue, **"As seen" press bar** (text wordmarks from `catalog.press`, no third-party logos).
 4. `Ticker` — gold marquee, alternating outline words, masked edges, pauses on hover.
+4b. `Honors` — `#honors`. **Awards-night band**: spotlight cone, four laurel cards from `catalog.honors`. Wording is deliberately truthful ("Grammy ballot consideration", not a win). Laurel SVG lives in `Laurel.tsx`.
 5. `Chapter` ×2 — `#music` (`#show-me`) and `#wtda`. Sticky pin + scroll-scrubbed video on desktop. Still + loop on mobile. Ghost numeral, 3D-tilt cover with rotating text badge (click = play), DSP row + Share (Web Share / clipboard).
 6. `Player` — **real Web Audio analyser** drives the 28 bars (CSS pulse fallback if the AudioContext fails), spinning disc, progress ring, `PREVIEW_CAP = 30`.
 7. `MiniPlayer` — fixed bottom-left now-playing bar. Shows once a preview has started **and** its source `.player` is off-screen. Toggles through `player-store.toggleCurrent()`.
@@ -52,7 +53,11 @@ A palette pass is a `:root` edit. Keep gold as metal, not neon.
 11. `MerchGrid` — `#merch`. World filter tabs, hover quick-notify, sizes, uniform 1:1 tiles. Six SKUs from `lib/catalog.ts`.
 12. `TourDrop` — `#tour`. Ghost "ON THE ROAD" marquee, floating-label form, quick-pick city chips (hints only — never rendered as dates), drawn check on success. Notify form → `/api/notify`.
 13. `Footer` — 4-column grid, social icons, giant outlined "GREY", back to top.
-14. `Dock` (mobile), `AshWidget`, `Cursor`.
+14. `Dock` (mobile), `AshWidget`.
+
+## Awards-night layer (added on request — "Grammy winner's site")
+
+- Metallic gradient on `.btn.solid`, diamond kicker markers, `.orn` ornament rules, stage-spotlight radial glows on `.honors/.label/.merch/.tour/.about-copy`, "MEG Enterprises presents" in the preloader + hero kicker, laurel seal in the footer.
 
 ## ASH (`components/AshWidget.tsx`)
 
@@ -79,16 +84,23 @@ A palette pass is a `:root` edit. Keep gold as metal, not neon.
 - Printful: set `printfulProductId` on each merch row + `PRINTFUL_API_KEY`.
 - ASH live voice: create the agent from `VOICE.md`, set `ELEVENLABS_AGENT_ID` and `ELEVENLABS_VOICE_ID`.
 
+## Imagery — retouch + 4K pipeline
+
+- **Crosses removed** from the hero wall, the Show Me plate (wall + framed print), and the framed print in the Show Me **cover** (`scripts/retouch.py`, OpenCV column/row reconstruction — no generative fill, faces untouched). Untouched originals archived at `private/masters/originals/` (never public).
+- **Enhanced + resampled** (`scripts/enhance-4k.mjs`): clarity → Lanczos3 → micro-sharpen → gentle tone. Tiers: `name-4k.jpg` (3840 / 4096 wide), `name.jpg` (desktop), `name-m.jpg` (mobile). srcSets reference all three. `about/portrait.png` → `portrait(-4k|-m).jpg`.
+- Note: this is a high-quality resample, not generative AI upscaling — the image service had 0 credits. If you buy credits, `upscale_image` (4K) on the archived originals will add real detail; re-run `retouch.py` on the results first.
+- `hero.mp4` and `plates/show-me.mp4` were re-rendered from the cleaned 4K stills (1920×1080, 30fps, 6s, no audio).
+
 ## Asset inventory
 
 | Path | Use |
 |---|---|
-| `/media/hero/hero-still.jpg` + `hero.mp4` | Hero |
-| `/media/plates/show-me.jpg` + `.mp4` | Show Me chapter |
-| `/media/plates/wtda.jpg` + `.mp4` | WTDA chapter |
-| `/media/covers/show-me.jpg` | Cover + poster merch + tilt card |
-| `/media/covers/wtda.jpg` | Cover + poster merch + tilt card |
-| `/media/about/portrait.png` | About |
+| `/media/hero/hero-still(-4k|-m).jpg` + `hero.mp4` | Hero |
+| `/media/plates/show-me(-4k|-m).jpg` + `.mp4` | Show Me chapter |
+| `/media/plates/wtda(-4k|-m).jpg` + `.mp4` | WTDA chapter |
+| `/media/covers/show-me(-4k|-m).jpg` | Cover + poster merch + tilt card (cross removed; original archived) |
+| `/media/covers/wtda(-4k|-m).jpg` | Cover + poster merch + tilt card |
+| `/media/about/portrait(-4k|-m).jpg` | About |
 | `/media/ash/ash-portrait.jpg` | Widget |
 | `/media/merch/*` | Product stills |
 | `/audio/previews/*.m4a` | 30s clips |

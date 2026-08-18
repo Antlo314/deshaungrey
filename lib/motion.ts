@@ -46,7 +46,7 @@ export function useRevealObserver() {
         }
       },
       // threshold 0 + isIntersecting: clip-path'd targets report ratio 0 in Chrome
-      { rootMargin: "0px 0px -10% 0px", threshold: 0 }
+      { rootMargin: "0px 0px -4% 0px", threshold: 0 }
     );
     const scan = () => document.querySelectorAll(selector).forEach((el) => {
       if (!el.classList.contains("in")) io.observe(el);

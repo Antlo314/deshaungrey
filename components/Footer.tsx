@@ -2,6 +2,7 @@
 
 import { artist, dsps, label, socials } from "@/lib/catalog";
 import { Icon } from "./Icons";
+import { Laurel } from "./Laurel";
 import { scrollToId } from "./Effects";
 
 const SOCIAL_ICON: Record<string, keyof typeof Icon> = {
@@ -57,6 +58,10 @@ export function Footer() {
           <p style={{ color: "var(--mute)", fontSize: 12 }}>{label.tagline}</p>
           <p style={{ color: "var(--mute)", fontSize: 12 }}>Founded by {label.founder}</p>
         </div>
+      </div>
+
+      <div className="foot-laurel reveal">
+        <Laurel size={56}>World of Grey · MMXXVI</Laurel>
       </div>
 
       <div className="foot-mark reveal-clip" aria-hidden>GREY</div>
