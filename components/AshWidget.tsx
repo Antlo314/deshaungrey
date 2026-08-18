@@ -86,12 +86,19 @@ export function AshWidget() {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const ctxRef = useRef<AudioContext | null>(null);
-  const anRef = useRef<AnalyserNode | null>(null);
-  const nodeRef = useRef<WeakMap<HTMLAudioElement, MediaElementAudioSourceNode>>(new WeakMap());
+  const envRef = useRef<Float32Array | null>(null);   // amplitude envelope of the current clip
+  // The mic path captures callbacks for the lifetime of a recognition session, so
+  // anything speak() reads must come from a ref or it will be a stale snapshot.
+  const voiceOnRef = useRef(true);
+  const voiceLeftRef = useRef<number | null>(null);
+  const voiceWiredRef = useRef(true);
   const rafRef = useRef(0);
   const recRef = useRef<SpeechRec | null>(null);
 
   const { out: typed, done } = useTypewriter(line);
+  voiceOnRef.current = voiceOn;
+  voiceLeftRef.current = voiceLeft;
+  voiceWiredRef.current = voiceWired;
 
   useEffect(() => {
     fetch("/api/voice/quota")
@@ -167,47 +174,49 @@ export function AshWidget() {
   }
 
   /** Wires an <audio> through an analyser so the orb pulses with her voice. */
-  function attachAnalyser(audio: HTMLAudioElement) {
+  /**
+   * Builds an amplitude envelope for a clip WITHOUT routing playback through the
+   * AudioContext. Routing was the bug: opening the microphone for speech
+   * recognition can suspend the context, and a suspended graph silently swallows
+   * whatever is routed into it — she went mute for exactly that reason. The
+   * <audio> element now always plays straight to the speakers, and the orb reads
+   * this pre-computed envelope instead.
+   */
+  async function buildEnvelope(buf: ArrayBuffer) {
     try {
       const ctx = ctxRef.current;
-      // If the graph is not running, leave the element unrouted so it plays
-      // through the speakers normally. The orb falls back to a synthesised pulse.
-      if (!ctx || ctx.state !== "running") {
-        anRef.current = null;
-        return;
+      if (!ctx) return null;
+      const decoded = await ctx.decodeAudioData(buf.slice(0));
+      const ch = decoded.getChannelData(0);
+      const step = Math.max(1, Math.floor(decoded.sampleRate / 30)); // ~30 buckets/sec
+      const out = new Float32Array(Math.ceil(ch.length / step));
+      let peak = 0.0001;
+      for (let i = 0, b = 0; i < ch.length; i += step, b++) {
+        let sum = 0;
+        const end = Math.min(i + step, ch.length);
+        for (let j = i; j < end; j++) sum += ch[j] * ch[j];
+        const rms = Math.sqrt(sum / Math.max(1, end - i));
+        out[b] = rms;
+        if (rms > peak) peak = rms;
       }
-      let node = nodeRef.current.get(audio);
-      if (!node) {
-        node = ctx.createMediaElementSource(audio);
-        nodeRef.current.set(audio, node);
-      }
-      const an = ctx.createAnalyser();
-      an.fftSize = 256;
-      an.smoothingTimeConstant = 0.65;
-      node.connect(an);
-      an.connect(ctx.destination);
-      anRef.current = an;
-      ctx.resume().catch(() => undefined);
+      for (let i = 0; i < out.length; i++) out[i] = Math.min(1, (out[i] / peak) * 1.15);
+      return out;
     } catch {
-      anRef.current = null;
+      return null;
     }
   }
 
+  /** Drives --amp from the envelope when we have one, else a believable synthetic pulse. */
   function pulseWhile(audio: HTMLAudioElement) {
     const start = () => {
       setSpeaking(true);
-      const an = anRef.current;
-      const data = an ? new Uint8Array(an.frequencyBinCount) : null;
       const loop = () => {
-        let amp = 0;
-        if (an && data) {
-          an.getByteFrequencyData(data);
-          let sum = 0;
-          const n = Math.min(40, data.length);
-          for (let i = 0; i < n; i++) sum += data[i];
-          amp = Math.min(1, sum / (n * 128));
+        const env = envRef.current;
+        let amp;
+        if (env && env.length) {
+          const idx = Math.min(env.length - 1, Math.floor(audio.currentTime * 30));
+          amp = env[idx] || 0;
         } else {
-          // no analyser (autoplay policy / old browser): fake a believable pulse
           amp = 0.35 + Math.abs(Math.sin(audio.currentTime * 7)) * 0.5;
         }
         root.current?.style.setProperty("--amp", amp.toFixed(3));
@@ -229,19 +238,20 @@ export function AshWidget() {
 
   function playClip(src: string, fallback: string) {
     setLine(fallback);
-    if (!voiceOn) return;              // cached clips are free but respect the toggle
+    if (!voiceOnRef.current) return;   // cached clips are free but respect the toggle
     audioRef.current?.pause();
     const audio = new Audio(src);
     audioRef.current = audio;
-    attachAnalyser(audio);
+    envRef.current = null;             // synthetic pulse is fine for the cached clips
     pulseWhile(audio);
     audio.play().catch(() => undefined);
   }
 
-  /** Speaks arbitrary text through the server TTS route, if voice is on and left. */
+  /** Speaks the answer. Voice leads — this runs for every answer until the budget
+   *  is spent, after which she keeps replying in text. */
   async function speak(text: string) {
-    if (!voiceOn || !voiceWired) return;
-    if (voiceLeft !== null && voiceLeft <= 0) return;
+    if (!voiceOnRef.current || !voiceWiredRef.current) return;
+    if (voiceLeftRef.current === 0) return;   // known-empty; the server is the authority otherwise
     try {
       const res = await fetch("/api/ash/speak", {
         method: "POST",
@@ -249,17 +259,26 @@ export function AshWidget() {
         body: JSON.stringify({ text }),
       });
       if (!res.ok) {
-        if (res.status === 429) setVoiceLeft(0);
+        if (res.status === 429) {
+          setVoiceLeft(0);
+          voiceLeftRef.current = 0;
+        }
         return;
       }
       const left = res.headers.get("X-Ash-Voice-Left");
-      if (left !== null) setVoiceLeft(Number(left));
-      const url = URL.createObjectURL(await res.blob());
+      if (left !== null) {
+        setVoiceLeft(Number(left));
+        voiceLeftRef.current = Number(left);
+      }
+
+      const buf = await res.arrayBuffer();
+      envRef.current = await buildEnvelope(buf);
+
+      const url = URL.createObjectURL(new Blob([buf], { type: "audio/mpeg" }));
       audioRef.current?.pause();
       const audio = new Audio(url);
       audioRef.current = audio;
-      attachAnalyser(audio);
-      pulseWhile(audio);
+      pulseWhile(audio);              // never routed through the AudioContext
       audio.addEventListener("ended", () => URL.revokeObjectURL(url));
       await audio.play().catch(() => undefined);
     } catch {
@@ -535,9 +554,11 @@ export function AshWidget() {
             </div>
             <div className="ash-quota">
               <span>
-                {voiceWired
-                  ? `${voiceLeft ?? voiceCap} of ${voiceCap} spoken replies left`
-                  : "Text answers · voice not configured"}
+                {!voiceWired
+                  ? "Text answers · voice not configured"
+                  : voiceLeft === 0
+                    ? "Voice budget spent · text answers"
+                    : `${voiceLeft ?? voiceCap} of ${voiceCap} spoken replies left`}
               </span>
               <span>{voiceOn ? "Voice on" : "Voice off"}</span>
             </div>

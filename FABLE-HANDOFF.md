@@ -96,7 +96,8 @@ A palette pass is a `:root` edit. Keep gold as metal, not neon.
      Grammy winner — the prompt forbids both.
   3. Otherwise she deflects in character rather than dead-ending.
 - `POST /api/ash/speak` → `audio/mpeg` from ElevenLabs TTS. Server-side only, so the key is
-  never exposed. **Capped at `VOICE_REPLY_CAP = 10` spoken replies per visitor per day**
+  never exposed. **Voice leads.** Every answer is spoken until the budget is gone, then she keeps
+  answering in text. **Capped at `VOICE_REPLY_CAP = 7` spoken replies per visitor per day**
   (`lib/quota.ts`), plus 400 chars/request and 120k chars/day globally. `GET` on the same
   route reports `{ left, cap, wired }` for free. Text answers are never capped — muting or
   running out only removes the audio.
@@ -113,11 +114,20 @@ A palette pass is a `:root` edit. Keep gold as metal, not neon.
      While that is empty the "Start a live call" button is **hidden entirely**, because offering
      a call that can only fail is how she ended up silent. `/api/voice/quota` now returns
      `agentWired` so the widget knows.
-- **Audio graph safety:** browsers start an `AudioContext` suspended, and routing an element
-  through a suspended graph makes it silent. `primeAudio()` is called from real gestures (orb,
-  composer, mic, toggle), and `attachAnalyser()` refuses to route audio unless the context is
-  actually `running` — otherwise the element plays straight to the speakers and the orb uses a
-  synthesised pulse. Never route audio through the graph without that check.
+- **Her voice is NEVER routed through the AudioContext.** It used to be, to feed an analyser
+  for the orb — and that made her mute after using the mic: opening the microphone for speech
+  recognition can suspend the context, and a suspended graph silently swallows whatever is
+  routed into it. The greeting still played (a plain `<audio>`), so it looked like only
+  answers were broken.
+  Now `buildEnvelope()` decodes the clip once and precomputes a ~30fps RMS envelope, the
+  `<audio>` element plays straight to the speakers, and `pulseWhile()` drives `--amp` by
+  indexing that envelope against `currentTime`. Real reactivity, zero risk of silence. If
+  decoding fails there is a synthetic pulse. **Do not reintroduce `createMediaElementSource`
+  on her voice.**
+- **Read voice state through refs, not state.** A speech-recognition session captures its
+  callbacks for its whole lifetime, so `speak()` reading `voiceOn`/`voiceLeft` from a render
+  closure would act on a stale snapshot. `voiceOnRef` / `voiceLeftRef` / `voiceWiredRef` are
+  kept in step every render.
 - Bubble classes are `.from-you` / `.from-ash` on purpose — a bare `.ash` modifier collides
   with the widget root rule `.ash { position: fixed }` and throws replies out of the panel.
 - Teaser bubble once per session (`sessionStorage.dg_ash_tease`) at ~5s.

@@ -6,11 +6,12 @@ export const VOICE_DAILY_SIGNED_URL_CAP = 400;
 export const COOKIE_NAME = "dg_ash";
 
 /**
- * Spoken replies per visit. ASH always answers in text; this only caps how many
+ * Spoken replies per visit. Voice leads: every answer is spoken until the budget
+ * is gone, then she keeps answering in text. This only caps how many
  * of those answers get sent to ElevenLabs, so the key cannot be drained by one
  * visitor holding a conversation.
  */
-export const VOICE_REPLY_CAP = 10;
+export const VOICE_REPLY_CAP = 7;
 
 type ReplyBucket = { spoken: number; day: string };
 const replies = new Map<string, ReplyBucket>();
