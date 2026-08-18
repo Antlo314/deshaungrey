@@ -70,6 +70,8 @@ export function AshWidget() {
   const [voiceLeft, setVoiceLeft] = useState<number | null>(null);
   const [voiceCap, setVoiceCap] = useState(10);
   const [voiceWired, setVoiceWired] = useState(true);
+  // a live ElevenLabs call needs ELEVENLABS_AGENT_ID; TTS only needs the voice id
+  const [agentWired, setAgentWired] = useState(false);
   // read once during render: speech support is a static browser capability
   const [canListen] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -94,7 +96,10 @@ export function AshWidget() {
   useEffect(() => {
     fetch("/api/voice/quota")
       .then((r) => r.json())
-      .then((q: Quota) => setQuota(q))
+      .then((q: Quota & { agentWired?: boolean }) => {
+        setQuota(q);
+        setAgentWired(Boolean(q.agentWired));
+      })
       .catch(() => undefined);
     fetch("/api/ash/speak")
       .then((r) => r.json())
@@ -148,14 +153,29 @@ export function AshWidget() {
   }, [log, thinking]);
 
   // ---------------------------------------------------------------- audio
-  /** Wires an <audio> through an analyser so the orb pulses with her voice. */
-  function attachAnalyser(audio: HTMLAudioElement) {
+  /** Must be called from a user gesture, or the context stays suspended. */
+  function primeAudio() {
     try {
       const AC =
         window.AudioContext ||
         (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      const ctx = ctxRef.current ?? new AC();
-      ctxRef.current = ctx;
+      if (!ctxRef.current) ctxRef.current = new AC();
+      if (ctxRef.current.state !== "running") void ctxRef.current.resume();
+    } catch {
+      ctxRef.current = null;
+    }
+  }
+
+  /** Wires an <audio> through an analyser so the orb pulses with her voice. */
+  function attachAnalyser(audio: HTMLAudioElement) {
+    try {
+      const ctx = ctxRef.current;
+      // If the graph is not running, leave the element unrouted so it plays
+      // through the speakers normally. The orb falls back to a synthesised pulse.
+      if (!ctx || ctx.state !== "running") {
+        anRef.current = null;
+        return;
+      }
       let node = nodeRef.current.get(audio);
       if (!node) {
         node = ctx.createMediaElementSource(audio);
@@ -277,6 +297,7 @@ export function AshWidget() {
 
   function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    primeAudio();
     const el = inputRef.current;
     if (!el) return;
     const v = el.value;
@@ -286,6 +307,7 @@ export function AshWidget() {
 
   /** Voice input via the browser's speech recognition, where available. */
   function toggleMic() {
+    primeAudio();
     if (listening) {
       recRef.current?.stop();
       return;
@@ -342,9 +364,14 @@ export function AshWidget() {
       mountOfficialWidget(data.signedUrl);
       return;
     }
-    // no live agent wired: the text + TTS path below still works fully
+    // No live agent wired: fall back to the text + TTS path, and say so out loud
+    // rather than going silent.
+    const fallback =
+      "My live line isn't up yet, but I'm right here — type it or hit the mic and I'll answer you.";
     setStatus("Ask me anything");
-    setLine("My live line isn't up yet — but type or hit the mic and I'll answer you right here.");
+    setLine(fallback);
+    setLog((l) => [...l, { role: "ash", text: fallback }]);
+    speak(fallback);
   }
 
   function mountOfficialWidget(signedUrl: string) {
@@ -413,7 +440,10 @@ export function AshWidget() {
             </div>
             <button
               className={`ash-voice ${voiceOn && voiceWired ? "on" : ""}`}
-              onClick={() => setVoiceOn((v) => !v)}
+              onClick={() => {
+                primeAudio();
+                setVoiceOn((v) => !v);
+              }}
               aria-pressed={voiceOn}
               disabled={!voiceWired}
               title={
@@ -491,7 +521,7 @@ export function AshWidget() {
               </button>
             </form>
 
-            {!live ? (
+            {agentWired && !live ? (
               <button className="btn ghost ash-livebtn" onClick={startLive}>
                 Start a live call
               </button>
@@ -523,6 +553,7 @@ export function AshWidget() {
         className="ash-orb"
         id="ash-orb"
         onClick={() => {
+          primeAudio();
           setOpen((v) => !v);
           setTease(false);
         }}

@@ -36,12 +36,19 @@ function who(req: Request) {
   const cookies = parseCookie(req.headers.get("cookie") || "");
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "0.0.0.0";
   const ua = req.headers.get("user-agent") || "unknown";
-  return cookies[COOKIE_NAME] || visitorKey(ip, ua);
+  // Without a cookie the bucket is hash(ip + ua), which lumps together everyone
+  // behind one NAT. Stamping a cookie gives each browser its own allowance.
+  return { id: cookies[COOKIE_NAME] || visitorKey(ip, ua), fresh: !cookies[COOKIE_NAME] };
+}
+
+function cookieHeader(id: string) {
+  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  return `${COOKIE_NAME}=${id}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400${secure}`;
 }
 
 /** How many spoken replies this visitor has left — costs nothing to ask. */
 export async function GET(req: Request) {
-  const id = who(req);
+  const { id } = who(req);
   return Response.json({
     left: voiceRepliesLeft(id),
     cap: VOICE_REPLY_CAP,
@@ -62,7 +69,7 @@ export async function POST(req: Request) {
   const voice = process.env.ELEVENLABS_VOICE_ID;
   if (!key || !voice) return new Response("voice_unwired", { status: 503 });
 
-  const id = who(req);
+  const { id, fresh } = who(req);
   const left = consumeVoiceReply(id);
   if (left === null) {
     return Response.json(
@@ -105,6 +112,7 @@ export async function POST(req: Request) {
         "Cache-Control": "no-store",
         "X-Ash-Voice-Left": String(left),
         "X-Ash-Voice-Cap": String(VOICE_REPLY_CAP),
+        ...(fresh ? { "Set-Cookie": cookieHeader(id) } : {}),
       },
     });
   } catch {

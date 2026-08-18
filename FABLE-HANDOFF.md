@@ -105,6 +105,19 @@ A palette pass is a `:root` edit. Keep gold as metal, not neon.
 - The panel has a conversation log, a text composer, and a **mic button** (Web Speech API,
   shown only where supported) so she can literally be spoken to. Replies are spoken back and
   the orb pulses with them.
+- **Two different voice paths, don't confuse them:**
+  1. *Her normal voice* — `/api/ash/speak` (ElevenLabs TTS). Needs only `ELEVENLABS_API_KEY`
+     + `ELEVENLABS_VOICE_ID`. **This is wired and working.**
+  2. *A live realtime call* — the `elevenlabs-convai` widget. Needs `ELEVENLABS_AGENT_ID`,
+     which can only be created in the ElevenLabs dashboard (the API key cannot create agents).
+     While that is empty the "Start a live call" button is **hidden entirely**, because offering
+     a call that can only fail is how she ended up silent. `/api/voice/quota` now returns
+     `agentWired` so the widget knows.
+- **Audio graph safety:** browsers start an `AudioContext` suspended, and routing an element
+  through a suspended graph makes it silent. `primeAudio()` is called from real gestures (orb,
+  composer, mic, toggle), and `attachAnalyser()` refuses to route audio unless the context is
+  actually `running` — otherwise the element plays straight to the speakers and the orb uses a
+  synthesised pulse. Never route audio through the graph without that check.
 - Bubble classes are `.from-you` / `.from-ash` on purpose — a bare `.ash` modifier collides
   with the widget root rule `.ash { position: fixed }` and throws replies out of the panel.
 - Teaser bubble once per session (`sessionStorage.dg_ash_tease`) at ~5s.
