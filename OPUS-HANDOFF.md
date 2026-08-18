@@ -81,14 +81,21 @@ the end of `globals.css` — add new block selectors there if a kicker ever turn
 ## Verified
 
 - `npm run build` clean; `eslint` 0 errors; `tsc` clean.
+- Pre-push audit (25 agents, adversarially verified): no secrets in tracked files or history, gitignore
+  covers env/data/private/.verify, no tracked file over 5 MB, no operator path or credential published.
 - Desktop 1440 + phone 390 screenshots of every page in `.verify/` (`node scripts/verify-viewports.mjs`).
 - `node scripts/e2e-admin.mjs`: gate → setup → bad password rejected → create post → post public → inquiry via
   /contact → submission via /submit → both appear in admin, handled, rated → settings save → reflected in footer/announce → sign out.
 
 ## What Opus should do next (routine, in order)
 
-1. **Deploy.** `git remote add origin <new repo>` → push → Vercel import → Neon → env (`SESSION_SECRET`, `ADMIN_EMAIL/PASSWORD`,
-   `NEXT_PUBLIC_SITE_URL`) → domain megentllc.com. Then hit `/api/health` and `/admin`. README has the exact steps.
+1. **Deploy.** This repo has 4 commits on `main` and no remote yet. Create an empty repo at github.com/new
+   (suggest PRIVATE `meg-enterprises` — this doc names internal fleet paths/ports), then run `../PUSH-MEG.bat`
+   (or `git remote add origin <url> && git push -u origin main`). Then Vercel import → Neon → env
+   (`SESSION_SECRET`, `ADMIN_EMAIL/PASSWORD`, `NEXT_PUBLIC_SITE_URL`) → domain megentllc.com.
+   Then hit `/api/health` and `/admin`. README has the exact steps.
+   **Do not reuse a password that ever appeared in a tracked file** — history was rewritten once
+   (filter-branch, pre-first-push) to remove exactly that; keep credentials in env vars only.
 2. **Owner onboarding.** Add Dashaun as owner (Team), confirm Settings (services@megentllc.com / 678-750-3247 are pre-filled; add socials, city).
    Fill DSP links on the two singles (Releases) and Dashaun's socials (Roster) — same links the artist site needs
    (`../artists/DashaunGrey/site/lib/catalog.ts` → `dsps`, `socials`; keep them in sync by hand for now).
