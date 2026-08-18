@@ -160,7 +160,12 @@ export function AshWidget() {
         onClick={() => setOpen((v) => !v)}
         aria-label="Talk to ASH"
       >
-        <img src="/media/ash/ash-portrait.jpg" alt="ASH" />
+        <img
+          src="/media/ash/ash-portrait-m.jpg"
+          srcSet="/media/ash/ash-portrait-m.jpg 400w, /media/ash/ash-portrait.jpg 1024w"
+          sizes="74px"
+          alt="ASH"
+        />
       </button>
     </div>
   );

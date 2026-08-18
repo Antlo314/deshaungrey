@@ -21,7 +21,12 @@ export function MerchGrid() {
         {merch.map((item) => (
           <article className="card" key={item.id}>
             <div className={`card-img ${item.kind === "poster" ? "poster" : ""}`}>
-              <img src={item.image} alt={item.title} />
+              <img
+                src={item.imageMobile}
+                srcSet={`${item.imageMobile} 900w, ${item.image} 1600w`}
+                sizes="(max-width: 419px) 100vw, (max-width: 900px) 50vw, 33vw"
+                alt={item.title}
+              />
             </div>
             <div className="card-body">
               <p className="kicker">{item.world === "showme" ? "Show Me" : "Where Dem Dollars At"}</p>

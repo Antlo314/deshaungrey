@@ -7,7 +7,9 @@ export type Single = {
   world: "showme" | "wtda";
   preview: string;
   cover: string;
+  coverMobile: string;
   plate: string;
+  plateMobile: string;
   plateVideo: string;
   sku: string;
   price: Money;
@@ -22,6 +24,7 @@ export type MerchItem = {
   world: "showme" | "wtda";
   kind: "tee" | "hoodie" | "poster";
   image: string;
+  imageMobile: string;
   sku: string;
   printfulProductId: string | null;
   price: Money;
@@ -50,7 +53,9 @@ export const singles: Single[] = [
     world: "showme",
     preview: "/audio/previews/show-me.m4a",
     cover: "/media/covers/show-me.jpg",
+    coverMobile: "/media/covers/show-me-m.jpg",
     plate: "/media/plates/show-me.jpg",
+    plateMobile: "/media/plates/show-me-m.jpg",
     plateVideo: "/media/plates/show-me.mp4",
     sku: "single-show-me",
     price: { cents: 199, label: "$1.99" },
@@ -65,7 +70,9 @@ export const singles: Single[] = [
     world: "wtda",
     preview: "/audio/previews/wtda.m4a",
     cover: "/media/covers/wtda.jpg",
+    coverMobile: "/media/covers/wtda-m.jpg",
     plate: "/media/plates/wtda.jpg",
+    plateMobile: "/media/plates/wtda-m.jpg",
     plateVideo: "/media/plates/wtda.mp4",
     sku: "single-wtda",
     price: { cents: 199, label: "$1.99" },
@@ -83,6 +90,7 @@ export const merch: MerchItem[] = [
     world: "showme",
     kind: "tee",
     image: "/media/merch/show-me-tee.jpg",
+    imageMobile: "/media/merch/show-me-tee-m.jpg",
     sku: "merch-show-me-tee",
     printfulProductId: null,
     price: { cents: 3800, label: "$38" },
@@ -94,6 +102,7 @@ export const merch: MerchItem[] = [
     world: "showme",
     kind: "hoodie",
     image: "/media/merch/show-me-hoodie.jpg",
+    imageMobile: "/media/merch/show-me-hoodie-m.jpg",
     sku: "merch-show-me-hoodie",
     printfulProductId: null,
     price: { cents: 6800, label: "$68" },
@@ -105,6 +114,7 @@ export const merch: MerchItem[] = [
     world: "showme",
     kind: "poster",
     image: "/media/covers/show-me.jpg",
+    imageMobile: "/media/covers/show-me-m.jpg",
     sku: "merch-show-me-poster",
     printfulProductId: null,
     price: { cents: 2400, label: "$24" },
@@ -116,6 +126,7 @@ export const merch: MerchItem[] = [
     world: "wtda",
     kind: "tee",
     image: "/media/merch/wtda-tee.jpg",
+    imageMobile: "/media/merch/wtda-tee-m.jpg",
     sku: "merch-wtda-tee",
     printfulProductId: null,
     price: { cents: 3800, label: "$38" },
@@ -127,6 +138,7 @@ export const merch: MerchItem[] = [
     world: "wtda",
     kind: "hoodie",
     image: "/media/merch/wtda-hoodie.jpg",
+    imageMobile: "/media/merch/wtda-hoodie-m.jpg",
     sku: "merch-wtda-hoodie",
     printfulProductId: null,
     price: { cents: 6800, label: "$68" },
@@ -138,6 +150,7 @@ export const merch: MerchItem[] = [
     world: "wtda",
     kind: "poster",
     image: "/media/covers/wtda.jpg",
+    imageMobile: "/media/covers/wtda-m.jpg",
     sku: "merch-wtda-poster",
     printfulProductId: null,
     price: { cents: 2400, label: "$24" },

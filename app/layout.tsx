@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Cormorant_Garamond, Geist } from "next/font/google";
 import "./globals.css";
 
@@ -13,6 +13,13 @@ const display = Cormorant_Garamond({
   weight: ["400", "500", "600", "700"],
   style: ["normal", "italic"],
 });
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#070708",
+};
 
 export const metadata: Metadata = {
   title: "Dashaun Grey — World of Grey",

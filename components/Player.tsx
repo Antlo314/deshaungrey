@@ -11,8 +11,7 @@ export function Player({ track }: { track: Single }) {
   const [playing, setPlaying] = useState(false);
   const [t, setT] = useState(0);
   const bars = useMemo(
-    () =>
-      Array.from({ length: 36 }, (_, i) => 28 + ((i * 37) % 72)),
+    () => Array.from({ length: 24 }, (_, i) => 28 + ((i * 37) % 72)),
     []
   );
 
@@ -61,7 +60,9 @@ export function Player({ track }: { track: Single }) {
     <div className={`player ${playing ? "playing" : ""}`}>
       <img
         className={`player-art ${playing ? "spin" : ""}`}
-        src={track.cover}
+        src={track.coverMobile}
+        srcSet={`${track.coverMobile} 800w, ${track.cover} 1600w`}
+        sizes="72px"
         alt={`${track.title} cover`}
       />
       <div className="player-meta">

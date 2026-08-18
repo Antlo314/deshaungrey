@@ -4,7 +4,12 @@ export function About() {
   return (
     <section className="about" id="about">
       <div className="about-photo">
-        <img src="/media/about/portrait.png" alt="Dashaun Grey in a windowpane tuxedo" />
+        <img
+          src="/media/about/portrait-m.jpg"
+          srcSet="/media/about/portrait-m.jpg 900w, /media/about/portrait.png 1600w"
+          sizes="(max-width: 900px) 100vw, 50vw"
+          alt="Dashaun Grey in a windowpane tuxedo"
+        />
       </div>
       <div className="about-copy">
         <p className="kicker">From Loris to the world</p>

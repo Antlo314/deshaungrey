@@ -2,49 +2,47 @@
 
 import { useEffect, useRef } from "react";
 import type { Single } from "@/lib/catalog";
+import { useCinema } from "@/lib/useCinema";
 import { Player } from "./Player";
 import { BuyButton } from "./BuyButton";
 
 export function Chapter({ track, index }: { track: Single; index: number }) {
+  const cinema = useCinema();
   const root = useRef<HTMLElement | null>(null);
   const video = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
     const section = root.current;
     const vid = video.current;
-    if (!section || !vid) return;
-    if (window.matchMedia("(max-width: 900px), (prefers-reduced-motion: reduce)").matches) {
-      vid.loop = true;
-      vid.muted = true;
-      vid.play().catch(() => undefined);
-      return;
-    }
+    if (!cinema || !section || !vid) return;
+
+    vid.loop = false;
+    vid.pause();
 
     let raf = 0;
     const onScroll = () => {
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {
-        const rect = section.getBoundingClientRect();
+        const dur = vid.duration;
+        if (!Number.isFinite(dur) || dur <= 0) return;
         const total = section.offsetHeight - window.innerHeight;
         if (total <= 0) return;
-        const traveled = Math.min(Math.max(-rect.top, 0), total);
-        const p = traveled / total;
-        const dur = vid.duration;
-        if (Number.isFinite(dur) && dur > 0) {
-          const next = p * (dur - 0.05);
-          if (Math.abs(vid.currentTime - next) > 0.04) vid.currentTime = next;
-        }
+        const traveled = Math.min(Math.max(-section.getBoundingClientRect().top, 0), total);
+        const next = (traveled / total) * (dur - 0.08);
+        if (Math.abs(vid.currentTime - next) > 0.08) vid.currentTime = next;
       });
     };
 
-    vid.pause();
+    const ready = () => onScroll();
+    vid.addEventListener("loadedmetadata", ready);
     window.addEventListener("scroll", onScroll, { passive: true });
     onScroll();
     return () => {
       cancelAnimationFrame(raf);
+      vid.removeEventListener("loadedmetadata", ready);
       window.removeEventListener("scroll", onScroll);
     };
-  }, []);
+  }, [cinema]);
 
   return (
     <section
@@ -55,16 +53,24 @@ export function Chapter({ track, index }: { track: Single; index: number }) {
     >
       <div className="chapter-pin">
         <div className="chapter-media">
-          <video
-            ref={video}
-            muted
-            playsInline
-            preload="auto"
-            poster={track.plate}
-          >
-            <source src={track.plateVideo} type="video/mp4" />
-          </video>
-          <img src={track.plate} alt="" />
+          {cinema ? (
+            <video
+              ref={video}
+              muted
+              playsInline
+              preload="metadata"
+              poster={track.plate}
+            >
+              <source src={track.plateVideo} type="video/mp4" />
+            </video>
+          ) : (
+            <img
+              src={track.plateMobile}
+              srcSet={`${track.plateMobile} 1200w, ${track.plate} 1920w`}
+              sizes="100vw"
+              alt=""
+            />
+          )}
         </div>
         <div className="chapter-shade" />
         <div className="chapter-copy">
