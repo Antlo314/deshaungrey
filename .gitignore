@@ -1,32 +1,36 @@
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
+# ---------------------------------------------------------------------------
+# MEG Enterprises monorepo.
+#   site/                    -> megentllc.com (company site + owner dashboard)
+#   artists/DashaunGrey/site -> dashaungrey.com (artist page under MEG)
+# Each app also has its own .gitignore, which still applies inside its folder.
+# ---------------------------------------------------------------------------
 
-# next.js
-/.next/
-/out/
-/build
+# NEVER PUBLISH: unreleased master audio, raw bio assets and cover art.
+# The artist site deliberately serves only 30-second previews and keeps its
+# masters in a gitignored private/ folder — do not undo that here.
+/artists/DashaunGrey/assets/
+/artists/DashaunGrey/wtda/
+
+# dependencies / build output (any app)
+node_modules/
+.next/
+out/
+build/
+
+# secrets — .env.example is the only env file that ships
+.env
+.env.*
+!.env.example
+
+# local databases, masters, screenshots, deploy links
+data/
+private/
+.verify/
+.vercel/
 
 # misc
+*.tsbuildinfo
+next-env.d.ts
 .DS_Store
 *.pem
 npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# env files
-.env*
-!.env.example
-
-# local database, masters, screenshots
-/data
-/private
-/.verify
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts

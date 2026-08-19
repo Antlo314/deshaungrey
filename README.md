@@ -1,41 +1,19 @@
-# MEG Enterprises — megentllc.com
-
-Company site + owner dashboard for **MEG Enterprises, LLC** — the independent record label and
-family-founded entertainment company founded by Dr. Glenda S. Williams, now led by Dashaun Grey.
-Dashaun's artist site lives one level up at `../artists/DashaunGrey/site` (dashaungrey.com).
-
-Next.js 16 · React 19 · Tailwind v4 · TypeScript · Postgres (Neon/Supabase) with a JSON dev store.
+# MEG Enterprises, LLC — the parent company
 
 ```
-cd path/to/MEG/site
-npm install
-npm run dev            # http://localhost:4990   dashboard: /admin
+Lumen/MEG/
+├─ site/                     megentllc.com — Next.js 16 company site + owner dashboard  (its own git repo)
+├─ artists/
+│  └─ DashaunGrey/           dashaungrey.com — the artist page under MEG (its own git repo, was Lumen/DashawnGrey)
+├─ meg.txt                   the company bio everything is written from
+└─ README.md                 this file
 ```
 
-First run locally: open http://localhost:4990/admin/setup and create the owner account
-(dev mode needs no token). Data lives in `data/meg-db.json` until `DATABASE_URL` is set.
-
-## Deploy (Vercel)
-
-1. Push this folder to a GitHub repo (it is its own git repo — `git remote add origin …`).
-2. Vercel → Add New Project → import the repo. Framework: Next.js. No build settings needed.
-3. Storage → Create Database → **Neon Postgres** → connect to the project. That injects `DATABASE_URL`.
-4. Environment Variables (Production):
-   - `SESSION_SECRET` — 32+ random chars: `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`
-   - `ADMIN_EMAIL` + `ADMIN_PASSWORD` — the first owner is created automatically on first admin visit
-     (or set `ADMIN_SETUP_TOKEN` and use /admin/setup in the browser instead)
-   - optional: `NOTIFY_WEBHOOK` (Zapier / Make / Slack / Telegram relay — gets every inquiry + submission as JSON),
-     `NEXT_PUBLIC_SITE_URL=https://megentllc.com`, `NEXT_PUBLIC_DASHAUN_URL=https://dashaungrey.com`
-5. Domains → add `megentllc.com` (+ `www`), point DNS at Vercel.
-6. Sign in at https://megentllc.com/admin → Team → add Dashaun as a second owner → Settings → contact emails + socials.
-
-Health check: `/api/health` reports the database backend and connectivity.
-
-## Scripts
-
-- `python scripts/make-logo.py` — regenerate brand PNG/SVG/icons from the original lockup JPG
-- `node scripts/make-og.mjs` — regenerate the share card
-- `node scripts/verify-viewports.mjs [desktop|phone] [filter]` — screenshot every page (needs dev server)
-- `node scripts/e2e-admin.mjs` — end-to-end smoke of the dashboard (needs dev server)
-
-See `OPUS-HANDOFF.md` for architecture, conventions and what is left. See `ASSET-PROMPTS.md` for images/video.
+- Company site: `cd site && npm run dev` → http://localhost:4990 · dashboard at /admin
+- Artist site:  `cd artists/DashaunGrey/site && npm run dev` → http://localhost:3000
+- **Push MEG to GitHub the first time:** create an empty PRIVATE repo at https://github.com/new
+  (suggested name `meg-enterprises`, no README/gitignore/licence), then run `PUSH-MEG.bat`.
+  Private is recommended — `site/OPUS-HANDOFF.md` documents internal Lumen fleet paths and ports.
+  The Dashaun artist site is already pushed (github.com/Antlo314/deshaungrey, branch `main`).
+- Read `site/OPUS-HANDOFF.md` before touching the company site; `artists/DashaunGrey/site/FABLE-HANDOFF.md` before the artist site.
+- Image / video prompts for every visual slot: `site/ASSET-PROMPTS.md`.
