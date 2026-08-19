@@ -109,6 +109,34 @@ the end of `globals.css` — add new block selectors there if a kicker ever turn
    `revalidatePath` calls), a Resend/SMTP email hook next to `notify()` for reply-from-dashboard, media upload to Vercel Blob
    in the roster/release forms (today: paths/URLs), CSV export of inbox/submissions, Vercel Analytics tag in `app/layout.tsx`.
 
+## Typography + layout traps (all fixed here — check before restyling)
+
+- **`background-clip:text` paints only inside the element box.** `.metal-text` at
+  `line-height: .9` left the bottom ~0.15em of every glyph unpainted ("30+" lost its
+  old-style figures, "Grammy" its y). Fixed with `padding-bottom: .2em; margin-bottom: -.2em`.
+  Same trap, same fix, on `.tile .v.metal` in `admin.css`.
+- **The letter-reveal masks crop descenders.** `.st` and `.menu-links a` use `overflow:hidden`
+  so letters can slide up from below; at `line-height: .9` that also cropped every p/g/y at rest.
+  Fixed by growing the mask (`padding-bottom`, negative `margin-bottom`) AND increasing the start
+  offset to `translateY(150%)` so letters still hide behind the now-taller window.
+- **Nothing may overflow horizontally.** Mobile Chrome widens the *layout viewport* to fit
+  horizontal overflow, which pushed the nav's burger off-screen and made the menu untappable.
+  Two causes were found and removed: `.film-grain` was a fixed overlay at `inset:-50%`/`200%`
+  (now `inset:0`, jitter comes from `background-position`), and `.spot::before` bled to
+  `-20%` left/right (now `inset: -10% 0 auto 0` with the spread in the gradient).
+  `overflow-x: clip` on `body` does NOT save you — it propagates to the viewport and body
+  itself computes to `visible`. `overflow:hidden` on `.spot` is also not an option: the Legacy
+  section has a `position:sticky` portrait inside one.
+- **`node scripts/audit-clipping.mjs`** (needs the dev server) walks every page at desktop and
+  phone and reports any text whose real glyph ink lands outside its painting box. It measures ink
+  with canvas `actualBoundingBox*`, not font ascent/descent, and skips `aria-hidden` decorations
+  and `opacity:0` panels. It should print "no clipped glyph ink anywhere".
+- `node scripts/shot-region.mjs <path> <selector> <name>` for a zoomed screenshot of one element.
+
+> The Dashaun Grey site (`../artists/DashaunGrey/site`) still carries all three of these
+> defects — it shares the design-system lineage (`.film-grain` at 200%, `.metal-text`, `.st`).
+> The same three fixes apply verbatim if/when that site is touched.
+
 ## Gotchas learned building it
 
 - The React purity lint (react-hooks/purity) flags `Date.now()` in server components; use `lib/time.ts` `nowMs()`.
