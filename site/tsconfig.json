@@ -10,6 +10,10 @@
     "module": "esnext",
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
+    // Pin ambient @types. Without this, tsc walks UP the directory tree and picks up
+    // any stray node_modules/@types on the machine (a ~/node_modules/@types/lodash
+    // broke `npm run build --prefix site` while the same build passed from inside site/).
+    "types": ["node"],
     "isolatedModules": true,
     "jsx": "react-jsx",
     "incremental": true,
