@@ -104,9 +104,11 @@ the end of `globals.css` — add new block selectors there if a kicker ever turn
    (`../artists/DashaunGrey/site/lib/catalog.ts` → `dsps`, `socials`; keep them in sync by hand for now).
 3. **Assets.** Work through `ASSET-PROMPTS.md`: hero plate (`public/media/hero/hero.mp4` + `hero-still.jpg`),
    founder photo (`public/media/legacy/founder.jpg` — drop-in), World Of Grey cover when it exists.
-4. **Command deck orb.** Register MEG under Lumen in `LUMENCOMMAND/Command/server/index.js` (engine registry near the
-   Tiffany entry ~L216, status probe ~L690, logo map ~L1388 → use `public/media/brand/logo-profile.png`) and
-   `Command/public/js/agents.js`. Port 4990. Dashaun (port 3000) can hang under MEG as a child orb. Not required for launch.
+4. **Command deck orb.** Register MEG (port 4990) and Dashaun (port 3000) in the internal Lumen
+   Command deck so they appear as a parent orb with a child. The exact registry files and line
+   numbers are deliberately not in this public repo — see `DECK-NOTES.local.md` beside this file
+   (gitignored) on the operator's machine. Not required for launch.
+
 5. **Nice-to-haves (only after 1–3):** `next/image` for roster/covers (currently `<img>` on purpose — paths are owner-entered
    strings that may be external), ISR instead of force-dynamic on public pages (`revalidate = 60` + keep the
    `revalidatePath` calls), a Resend/SMTP email hook next to `notify()` for reply-from-dashboard, media upload to Vercel Blob
