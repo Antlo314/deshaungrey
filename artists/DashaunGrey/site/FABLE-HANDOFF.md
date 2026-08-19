@@ -9,7 +9,7 @@ Fable may restyle. Fable must not invent new APIs or break the catalog.
 
 ## What this is
 
-A one-page cinematic artist site for **Dashaun Grey** (spelling on the covers and bio — not Dashawn). Two singles, six merch SKUs, an album teaser, an About, a MEG Enterprises label section, a tour waitlist, and **ASH**, a voice agent.
+A one-page cinematic artist site for **Dashaun Grey** (spelling on the covers and bio — not Dashawn). Two singles, six merch SKUs, an album teaser, an About, a MEG Enterprises label section, and a tour waitlist. (ASH, the voice agent, has moved to the MEG site — see below.)
 
 ## Tokens (`app/globals.css` `:root`)
 
@@ -71,78 +71,19 @@ A palette pass is a `:root` edit. Keep gold as metal, not neon.
 
 - Metallic gradient on `.btn.solid`, diamond kicker markers, `.orn` ornament rules, stage-spotlight radial glows on `.honors/.label/.merch/.tour/.about-copy`, "MEG Enterprises presents" in the preloader + hero kicker, laurel seal in the footer.
 
-## ASH (`components/AshWidget.tsx`)
+## ASH has moved to MEG
 
-- **ASH has no face.** She is an animated sphere — `.orb` in `globals.css`: a lit
-  radial-gradient ball (gold specular → gold → burgundy → void rim), a rotating
-  conic "liquid" swirl on `screen` blend, a blurred specular highlight, and an idle
-  breathe. Speaking speeds the swirl and drives scale/opacity from `--amp`.
-  The same `.orb` renders at 44px as `.orb-sm` in the panel header.
-  **Never reintroduce a portrait**: no `avatar-image-url` on the ElevenLabs element,
-  no photo in the orb. The old persona portrait is archived in
-  `private/masters/originals/ash__*` and is no longer served.
-- Orb chrome: conic gold/burgundy ring, twin halos, and an **audio-reactive glow**. Every
-  clip she speaks is routed through a Web Audio analyser that writes `--amp` on the widget
-  root; the orb core scales, the live ring expands, and a gold bloom tracks her voice. If the
-  analyser is unavailable (autoplay policy, old browser) a synthesised pulse stands in, so the
-  orb **always** moves while she talks. Open state shows an ×.
+ASH is no longer part of this site. She now works for the parent company as its greeter and guide,
+mounted site-wide at `../../../site` (megentllc.com), and her knowledge is built from MEG's database
+rather than this artist's catalog. Everything that used to live here — the widget, the brain, the
+`/api/ash/*` and `/api/voice/*` routes, the orb CSS, the cached clips and `VOICE.md` — went with her.
+If this site ever needs a voice again, port her back rather than forking a second personality.
 
-### She answers questions
-
-- `POST /api/ash/ask` → `{ answer }`, three tiers:
-  1. `lib/ash-brain.ts` — a grounded rule set covering tour/Grammy/Billboard/album/singles/
-     merch/label/FaSho/name-change/illness/hometown/streaming/**booking**. Works with no API
-     keys, free. The booking rule is hoisted near the top so "how do I contact Dashaun Grey"
-     does not fall through to the bio rule. Booking contact is real as of 2026-08-18:
-     **services@megentllc.com · 678-750-3247** (the parent-company site is megentllc.com,
-     source at `Lumen/MEG/site`). She never invents any other address, a fee, or availability.
-  2. If `ANTHROPIC_API_KEY` is set, Claude answers with `SYSTEM_PROMPT` + `FACT_SHEET` as its
-     ONLY source of truth (capped at 500 calls/day). It cannot invent dates or call him a
-     Grammy winner — the prompt forbids both.
-  3. Otherwise she deflects in character rather than dead-ending.
-- `POST /api/ash/speak` → `audio/mpeg` from ElevenLabs TTS. Server-side only, so the key is
-  never exposed. **Voice leads.** Every answer is spoken until the budget is gone, then she keeps
-  answering in text. **Capped at `VOICE_REPLY_CAP = 7` spoken replies per visitor per day**
-  (`lib/quota.ts`), plus 400 chars/request and 120k chars/day globally. `GET` on the same
-  route reports `{ left, cap, wired }` for free. Text answers are never capped — muting or
-  running out only removes the audio.
-- The panel header has a **speaker toggle**. Off = no TTS calls at all, including the cached
-  greeting. The meter and pips track spoken replies, since that is the budget visitors spend.
-- The panel has a conversation log, a text composer, and a **mic button** (Web Speech API,
-  shown only where supported) so she can literally be spoken to. Replies are spoken back and
-  the orb pulses with them.
-- **Two different voice paths, don't confuse them:**
-  1. *Her normal voice* — `/api/ash/speak` (ElevenLabs TTS). Needs only `ELEVENLABS_API_KEY`
-     + `ELEVENLABS_VOICE_ID`. **This is wired and working.**
-  2. *A live realtime call* — the `elevenlabs-convai` widget. Needs `ELEVENLABS_AGENT_ID`,
-     which can only be created in the ElevenLabs dashboard (the API key cannot create agents).
-     While that is empty the "Start a live call" button is **hidden entirely**, because offering
-     a call that can only fail is how she ended up silent. `/api/voice/quota` now returns
-     `agentWired` so the widget knows.
-- **Her voice is NEVER routed through the AudioContext.** It used to be, to feed an analyser
-  for the orb — and that made her mute after using the mic: opening the microphone for speech
-  recognition can suspend the context, and a suspended graph silently swallows whatever is
-  routed into it. The greeting still played (a plain `<audio>`), so it looked like only
-  answers were broken.
-  Now `buildEnvelope()` decodes the clip once and precomputes a ~30fps RMS envelope, the
-  `<audio>` element plays straight to the speakers, and `pulseWhile()` drives `--amp` by
-  indexing that envelope against `currentTime`. Real reactivity, zero risk of silence. If
-  decoding fails there is a synthetic pulse. **Do not reintroduce `createMediaElementSource`
-  on her voice.**
-- **Read voice state through refs, not state.** A speech-recognition session captures its
-  callbacks for its whole lifetime, so `speak()` reading `voiceOn`/`voiceLeft` from a render
-  closure would act on a stale snapshot. `voiceOnRef` / `voiceLeftRef` / `voiceWiredRef` are
-  kept in step every render.
-- Bubble classes are `.from-you` / `.from-ash` on purpose — a bare `.ash` modifier collides
-  with the widget root rule `.ash { position: fixed }` and throws replies out of the panel.
-- Teaser bubble once per session (`sessionStorage.dg_ash_tease`) at ~5s.
-- Panel: avatar header + status pill, typewriter line, **12-pip quota meter** (functional — reads `/api/voice/quota`), suggestion chips (Play Show Me / Play WTDA / merch / tour / about — "Play" chips scroll and press the real play button), Talk live → `/api/voice/signed-url` → mounts `elevenlabs-convai`. Flow and quota logic are unchanged from the original build.
 
 ## Do not break
 
 - 30-second preview cap (`components/Player.tsx`, `PREVIEW_CAP`)
 - Exclusive audio + now-playing store (`lib/player-store.ts` — `claimAudio`, `releaseAudio`, `publish`, `subscribe`, `toggleCurrent`)
-- ASH quota: 12 turns / 15 minutes (`lib/quota.ts`)
 - SKU strings in `lib/catalog.ts` — Stripe and Printful read this file
 - `/api/checkout` `stripe_unwired` fallback (button becomes notify, not a dead buy)
 - Masters in `private/masters/` — never move them to `public/`
@@ -155,26 +96,7 @@ A palette pass is a `:root` edit. Keep gold as metal, not neon.
 - **Socials** — `lib/catalog.ts` → `socials` are `"#"`.
 - Stripe: `STRIPE_SECRET_KEY` in `.env.local`. Checkout already posts line items from the catalog.
 - Printful: set `printfulProductId` on each merch row + `PRINTFUL_API_KEY`.
-- ASH live voice: create the **Conversational Agent** from `VOICE.md` in the ElevenLabs
-  dashboard and set `ELEVENLABS_AGENT_ID`. (The API key can do TTS and Voice Design but
-  cannot create agents.) Until it is set, the widget falls back to the cached clips and
-  the `agent_unwired` copy — it never dead-ends.
 
-## ASH's voice
-
-`scripts/design-ash-voice.mjs` designs her voice from the written description, saves
-every preview to `private/masters/ash-voice/`, creates the voice on the ElevenLabs
-account, writes `ELEVENLABS_VOICE_ID` into `.env.local`, and re-renders the cached
-`public/audio/ash/hello.mp3` + `timeout.mp3`.
-
-    node scripts/design-ash-voice.mjs                 # design + create + wire up
-    node scripts/design-ash-voice.mjs --previews-only # just audition
-    node scripts/design-ash-voice.mjs --use 1         # build from a different take
-
-Direction (also in `VOICE.md`): young African-American woman, early twenties, rich warm
-smoky lower register with a breathy edge, modern Atlanta cadence, playful and a little
-flirtatious but always classy. Settings: stability 0.40, similarity 0.85, style 0.45,
-speaker boost on.
 
 ## Imagery — retouch + 4K pipeline
 
@@ -241,4 +163,4 @@ or out of frame.
 
 ## Verify
 
-`node scripts/verify-viewports.mjs [desktop|phone]` → `.verify/*.png` (desktop 1440×900 + phone 390×844, every section, ASH open, Listen menu, pinned chapter). Requires the dev server on :3000.
+`node scripts/verify-viewports.mjs [desktop|phone]` → `.verify/*.png` (desktop 1440×900 + phone 390×844, every section, Listen menu, pinned chapter). Requires the dev server on :3000.

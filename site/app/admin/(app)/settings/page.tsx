@@ -54,7 +54,7 @@ export default async function SettingsPage() {
                 </div>
                 <div>
                   <span className={`status-dot ${process.env.NEXT_PUBLIC_DASHAUN_URL ? "ok" : ""}`} />
-                  NEXT_PUBLIC_DASHAUN_URL — {process.env.NEXT_PUBLIC_DASHAUN_URL || "default (dashaungrey.com)"}
+                  NEXT_PUBLIC_DASHAUN_URL — {process.env.NEXT_PUBLIC_DASHAUN_URL || "not set (roster links to /artists/dashaun-grey)"}
                 </div>
                 <p style={{ color: "var(--mute)", marginTop: 6, lineHeight: 1.6 }}>
                   Change these in Vercel → Project → Settings → Environment Variables, then redeploy. Media (portraits, covers, hero video) goes in <code>public/media</code> in the repo.

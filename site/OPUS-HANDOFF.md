@@ -11,6 +11,8 @@ Two things in one Next.js 16 app:
    Home, The Legacy (`/legacy`), Artists (`/artists`, `/artists/[slug]`), Development (`/services`),
    Releases (`/releases`), Press + press kit (`/press`, `/press/[slug]`), Submit music (`/submit`), Contact (`/contact`).
 2. **Owner dashboard** at `/admin` — inbox (inquiries), submissions (A&R), roster, releases, events, news, team, settings.
+3. **ASH** — greeter, guide and assistant, mounted site-wide in `(site)/layout.tsx`. She moved here from
+   the artist site and now represents the company.
 
 The Dashaun Grey artist site is a *separate Next app in the same repository* at
 `../artists/DashaunGrey/site`, with its own domain and its own Vercel project (Root Directory
@@ -73,6 +75,21 @@ there are zero users, and in production only with `ADMIN_SETUP_TOKEN` (or use `A
 **Motion language** (same family as the artist site): Lenis smooth scroll (fine pointer only), `.reveal/.reveal-clip/.reveal-x/.reveal-img/.reveal-lines/.st` + `useRevealObserver`, `--d` for stagger,
 preloader once per session (`sessionStorage.meg_intro`) → `html.ready` fires hero letters (per-line stagger),
 grain + vignette fixed overlays, `.progress` hairline. Reduced motion collapses everything.
+
+**ASH** (`components/AshWidget.tsx`, `lib/ash-brain.ts`, `app/api/ash/*`, `app/api/voice/*`):
+- Her knowledge is **assembled per request from the live database** — `api/ash/ask` loads roster,
+  releases, posts and settings (60s cache) and hands them to `factSheet()`. Sign an artist in the
+  dashboard and she can answer about them immediately; no code change, no redeploy.
+- Three tiers, unchanged in shape: `localAnswer()` rules (free, instant, no key) -> Anthropic with
+  `systemPrompt(facts)` as its ONLY source of truth if `ANTHROPIC_API_KEY` is set (capped at 500
+  calls/day) -> in-character deflect. She is never a dead end.
+- Voice is optional: `/api/ash/speak` (ElevenLabs TTS) and the live-call widget behave exactly as they
+  did on the artist site — see `VOICE.md` and `lib/quota.ts`. With no keys she is text-only and fine.
+- Rule ORDER matters. Submissions and contact are hoisted above roster/services because "what does MEG
+  do for artists" and "who are your artists" share vocabulary. There is a regression battery in the
+  commit message; re-run it if you touch the regexes.
+- She matches any roster artist by name/slug/former name automatically, so new signings work for free.
+- **Do not give her a face.** She is the `.orb` — a lit sphere that breathes and pulses with her voice.
 
 **Design tokens** (`:root`): `--ink #050505`, `--panel`, `--gold #d4b36a` (`--gold-hi`, `--gold-dim`, `--gold-logo #e8c778`),
 `--red #e4111c` (signal only: kicker dot, live pulse, NEW chips, wordmark dots), `--bone`, `--mute`, `--hair(-soft)`,

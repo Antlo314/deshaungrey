@@ -45,9 +45,7 @@ export function Footer({ socials, contactEmail, city }: { socials: Social[]; con
               <Link href="/artists/dashaun-grey">Dashaun Grey</Link>
             </li>
             <li>
-              <a href="https://dashaungrey.com" target="_blank" rel="noreferrer">
-                World of Grey ↗
-              </a>
+              <Link href="/releases">World of Grey</Link>
             </li>
             <li>
               <Link href="/releases">Releases</Link>

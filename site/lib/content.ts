@@ -211,6 +211,11 @@ export function siteUrl() {
   const raw = process.env.NEXT_PUBLIC_SITE_URL || (process.env.NODE_ENV === "production" ? PRODUCTION_URL : "http://localhost:4990");
   return raw.replace(/\/$/, "");
 }
+/**
+ * The artist's own domain, once there is one. dashaungrey.com is NOT registered yet,
+ * so this is empty by default and every "official site" link is hidden rather than
+ * pointing somewhere dead — /artists/dashaun-grey is the canonical page for now.
+ */
 export function dashaunUrl() {
-  return (process.env.NEXT_PUBLIC_DASHAUN_URL || "https://dashaungrey.com").replace(/\/$/, "");
+  return (process.env.NEXT_PUBLIC_DASHAUN_URL || "").replace(/\/$/, "");
 }

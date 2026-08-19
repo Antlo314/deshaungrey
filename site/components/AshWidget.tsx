@@ -3,7 +3,8 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { useReducedMotion } from "@/lib/motion";
 import { Icon } from "./Icons";
-import { scrollToId } from "./Effects";
+import { useRouter } from "next/navigation";
+import { GREETING } from "@/lib/ash-brain";
 
 type Quota = { remaining: number; cap: number; timeoutMs: number; timedOut: boolean };
 type SessionRes = Quota & { ok: boolean; reason?: string; signedUrl?: string };
@@ -11,10 +12,9 @@ type Msg = { role: "you" | "ash"; text: string };
 // NB: bubble modifier classes are prefixed — a bare `.ash` would collide with the
 // widget root rule (.ash { position: fixed }) and fling replies out of the panel.
 
-const HELLO =
-  "Hey. You made it into the World of Grey. I'm ASH — Dashaun's biggest fan. You want the new singles, the merch, or you just wanna talk him?";
-const TIMEOUT = "I gotta run — press play on Show Me for me. I'll be back in a few.";
-const TEASE_KEY = "dg_ash_tease";
+const HELLO = GREETING;
+const TIMEOUT = "I have to step away for a moment. Have a look around — the roster is on the Artists page.";
+const TEASE_KEY = "meg_ash_tease";
 
 /** Types a line out character by character. */
 function useTypewriter(text: string, speed = 14) {
@@ -57,6 +57,7 @@ export function AshWidget() {
   const [open, setOpen] = useState(false);
   const [line, setLine] = useState(HELLO);
   const [log, setLog] = useState<Msg[]>([]);
+  const router = useRouter();
   const [status, setStatus] = useState("Talk to ASH");
   const [quota, setQuota] = useState<Quota | null>(null);
   const [live, setLive] = useState(false);
@@ -417,29 +418,21 @@ export function AshWidget() {
     }
   }
 
-  function jump(id: string) {
+  /** She is a guide: chips take you to the page rather than just talking about it. */
+  function go(href: string) {
     setOpen(false);
-    scrollToId(id);
-  }
-
-  function playTrack(id: string) {
-    setOpen(false);
-    scrollToId(id === "show-me" ? "music" : id);
-    setTimeout(() => {
-      const btn = document.querySelector<HTMLButtonElement>(`[data-track="${id}"] .player .play`);
-      if (btn && btn.getAttribute("aria-label")?.startsWith("Play")) btn.click();
-    }, 900);
+    router.push(href);
   }
 
   const remaining = quota?.remaining ?? 12;
   const cap = quota?.cap ?? 12;
   const chips = [
-    { l: "Play Show Me", go: () => playTrack("show-me") },
-    { l: "Play WTDA", go: () => playTrack("wtda") },
-    { l: "Tour dates?", go: () => ask("When is the tour?") },
-    { l: "Grammy?", go: () => ask("Tell me about the Grammy") },
-    { l: "Who is Dashaun?", go: () => ask("Who is Dashaun Grey?") },
-    { l: "The merch", go: () => jump("merch") },
+    { l: "What is MEG?", go: () => ask("What is MEG Enterprises?") },
+    { l: "The roster", go: () => go("/artists") },
+    { l: "Submit music", go: () => go("/submit") },
+    { l: "What do you do?", go: () => ask("What does MEG do for artists?") },
+    { l: "The founder", go: () => ask("Who founded MEG?") },
+    { l: "Contact", go: () => go("/contact") },
   ];
 
   return (
@@ -520,8 +513,8 @@ export function AshWidget() {
               <input
                 ref={inputRef}
                 type="text"
-                placeholder="Ask me about Dashaun…"
-                aria-label="Ask ASH about Dashaun"
+                placeholder="Ask me about MEG…"
+                aria-label="Ask ASH about MEG Enterprises"
                 maxLength={300}
                 autoComplete="off"
               />

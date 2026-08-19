@@ -14,7 +14,6 @@ import { TourDrop } from "@/components/TourDrop";
 import { Footer } from "@/components/Footer";
 import { MiniPlayer } from "@/components/MiniPlayer";
 import { Dock } from "@/components/Dock";
-import { AshWidget } from "@/components/AshWidget";
 
 export default function Page() {
   return (
@@ -36,7 +35,6 @@ export default function Page() {
       <Footer />
       <MiniPlayer />
       <Dock />
-      <AshWidget />
     </main>
   );
 }

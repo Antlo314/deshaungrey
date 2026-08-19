@@ -72,6 +72,13 @@ export function Nav({ socials, contactEmail }: { socials: Social[]; contactEmail
           ))}
         </nav>
         <div className="nav-right">
+          <button
+            type="button"
+            className="btn sm"
+            onClick={() => document.getElementById("ash-orb")?.click()}
+          >
+            Ask ASH
+          </button>
           <Link href="/submit" className="btn sm">
             Submit music
           </Link>

@@ -105,10 +105,6 @@ export function Nav() {
             })}
           </div>
         </div>
-        <a className="nav-ash" href="#ash" onClick={(e) => { e.preventDefault(); document.getElementById("ash-orb")?.click(); }}>
-          <i aria-hidden />
-          Talk to Ash
-        </a>
       </div>
     </header>
   );
