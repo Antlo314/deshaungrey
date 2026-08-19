@@ -12,8 +12,10 @@ Two things in one Next.js 16 app:
    Releases (`/releases`), Press + press kit (`/press`, `/press/[slug]`), Submit music (`/submit`), Contact (`/contact`).
 2. **Owner dashboard** at `/admin` — inbox (inquiries), submissions (A&R), roster, releases, events, news, team, settings.
 
-The Dashaun Grey artist site is a *separate* Next app at `../artists/DashaunGrey/site` with its own repo and
-domain. MEG links out to it (roster card "Official site", `NEXT_PUBLIC_DASHAUN_URL`). Do not merge them.
+The Dashaun Grey artist site is a *separate Next app in the same repository* at
+`../artists/DashaunGrey/site`, with its own domain and its own Vercel project (Root Directory
+`artists/DashaunGrey/site`). MEG links out to it (roster card "Official site",
+`NEXT_PUBLIC_DASHAUN_URL`). One repo, two apps — do not merge the apps themselves.
 
 ## Truth rules (do not break)
 
@@ -89,9 +91,10 @@ the end of `globals.css` — add new block selectors there if a kicker ever turn
 
 ## What Opus should do next (routine, in order)
 
-1. **Deploy.** This repo has 4 commits on `main` and no remote yet. Create an empty repo at github.com/new
+1. **Deploy.** The repo root is `Lumen/MEG` (this app is `site/`). Create an empty repo at github.com/new
    (suggest PRIVATE `meg-enterprises` — this doc names internal fleet paths/ports), then run `../PUSH-MEG.bat`
-   (or `git remote add origin <url> && git push -u origin main`). Then Vercel import → Neon → env
+   (or `git remote add origin <url> && git push -u origin main`). Create TWO Vercel projects from it, with
+   Root Directory `site` and `artists/DashaunGrey/site`. Then Neon → env
    (`SESSION_SECRET`, `ADMIN_EMAIL/PASSWORD`, `NEXT_PUBLIC_SITE_URL`) → domain megentllc.com.
    Then hit `/api/health` and `/admin`. README has the exact steps.
    **Do not reuse a password that ever appeared in a tracked file** — history was rewritten once

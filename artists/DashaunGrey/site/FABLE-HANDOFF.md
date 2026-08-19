@@ -1,6 +1,9 @@
 # Fable handoff — Dashaun Grey / World of Grey
 
-This is the **artist page under MEG Enterprises** (parent site: `../../../site`, megentllc.com). This folder was `Lumen/DashawnGrey` until 2026-08-18.
+This is the **artist page under MEG Enterprises**, and it lives in the MEG monorepo:
+repo root is `Lumen/MEG`, the company site is `site/` (megentllc.com), this app is
+`artists/DashaunGrey/site` (dashaungrey.com, Vercel Root Directory set to that path).
+Raw masters sit beside it in `../assets` and `../wtda` and are gitignored on purpose.
 
 Fable may restyle. Fable must not invent new APIs or break the catalog.
 

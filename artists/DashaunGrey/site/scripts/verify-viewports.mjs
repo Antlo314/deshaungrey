@@ -1,10 +1,8 @@
-import { createRequire } from "module";
 import { mkdirSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 
-const require = createRequire("C:/Users/aarons/Desktop/zion-agent/package.json");
-const { chromium } = require("playwright");
+import { chromium } from "./_playwright.mjs";
 
 const out = join(dirname(fileURLToPath(import.meta.url)), "..", ".verify");
 mkdirSync(out, { recursive: true });

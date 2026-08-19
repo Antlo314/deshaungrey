@@ -2,7 +2,8 @@
 
 Company site + owner dashboard for **MEG Enterprises, LLC** — the independent record label and
 family-founded entertainment company founded by Dr. Glenda S. Williams, now led by Dashaun Grey.
-Dashaun's artist site lives one level up at `../artists/DashaunGrey/site` (dashaungrey.com).
+Dashaun's artist site is the sibling app in this repo at `../artists/DashaunGrey/site`
+(dashaungrey.com) — one repository, two Vercel projects.
 
 Next.js 16 · React 19 · Tailwind v4 · TypeScript · Postgres (Neon/Supabase) with a JSON dev store.
 
@@ -17,8 +18,8 @@ First run locally: open http://localhost:4990/admin/setup and create the owner a
 
 ## Deploy (Vercel)
 
-1. Push this folder to a GitHub repo (it is its own git repo — `git remote add origin …`).
-2. Vercel → Add New Project → import the repo. Framework: Next.js. No build settings needed.
+1. Push the REPO ROOT (`Lumen/MEG`, one level up) to GitHub — this folder is `site/` inside it.
+2. Vercel → Add New Project → import the repo → set **Root Directory** to `site`. Framework: Next.js.
 3. Storage → Create Database → **Neon Postgres** → connect to the project. That injects `DATABASE_URL`.
 4. Environment Variables (Production):
    - `SESSION_SECRET` — 32+ random chars: `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`

@@ -5,6 +5,7 @@ REM
 REM  STEP 1 (once, in a browser): create an EMPTY repo at
 REM         https://github.com/new
 REM         name: meg-enterprises      owner: Antlo314
+REM         (this repo now holds BOTH sites: site/ and artists/DashaunGrey/site/)
 REM         visibility: PRIVATE  (recommended - the repo carries internal
 REM                               handoff notes about the Lumen fleet)
 REM         do NOT add a README, .gitignore or licence - the repo already has them
@@ -16,7 +17,7 @@ setlocal
 set "REPO=%~1"
 if "%REPO%"=="" set "REPO=https://github.com/Antlo314/meg-enterprises.git"
 
-cd /d "%~dp0site" || (echo Could not find the site folder next to this script. & pause & exit /b 1)
+cd /d "%~dp0" || (echo Could not cd to the repo root. & pause & exit /b 1)
 
 echo.
 echo Repo:   %REPO%
@@ -49,4 +50,7 @@ echo   Storage  -^> Create Database -^> Neon Postgres  (sets DATABASE_URL)
 echo   Settings -^> Environment Variables: SESSION_SECRET, ADMIN_EMAIL, ADMIN_PASSWORD
 echo   Domains  -^> megentllc.com
 echo See site\README.md for the full deploy checklist.
+echo Vercel needs TWO projects from this one repo, with Root Directory set to:
+echo   site                       -^> megentllc.com
+echo   artists/DashaunGrey/site   -^> dashaungrey.com
 pause
