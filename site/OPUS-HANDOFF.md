@@ -83,8 +83,18 @@ grain + vignette fixed overlays, `.progress` hairline. Reduced motion collapses 
 - Three tiers, unchanged in shape: `localAnswer()` rules (free, instant, no key) -> Anthropic with
   `systemPrompt(facts)` as its ONLY source of truth if `ANTHROPIC_API_KEY` is set (capped at 500
   calls/day) -> in-character deflect. She is never a dead end.
-- Voice is optional: `/api/ash/speak` (ElevenLabs TTS) and the live-call widget behave exactly as they
-  did on the artist site — see `VOICE.md` and `lib/quota.ts`. With no keys she is text-only and fine.
+- **Voice is wired.** `ELEVENLABS_API_KEY` + `ELEVENLABS_VOICE_ID` are set locally in `.env.local`
+  (the same voice she had on the artist site), so she speaks her answers. **Set both in Vercel too**
+  or she is text-only in production. Budget: 7 spoken replies per visitor per day, 400 chars per
+  request, 120k chars/day globally (`lib/quota.ts`). `GET /api/ash/speak` is a FREE status probe —
+  only `POST` spends. Verified: 0 paid calls on open, exactly 1 per answer.
+- Her two cached clips (`public/audio/ash/hello.mp3`, `timeout.mp3`) are pre-rendered so the greeting
+  is instant and free. **Re-run `node scripts/make-ash-clips.mjs` whenever `GREETING` in
+  `lib/ash-brain.ts` or `TIMEOUT` in `AshWidget.tsx` changes**, or she will say one thing while the
+  panel shows another. The script reads the copy straight from source and matches the TTS settings in
+  `api/ash/speak/route.ts` so cached and live audio are the same person.
+- `ELEVENLABS_AGENT_ID` is deliberately UNSET: the existing agent carries the artist persona. Create a
+  MEG agent from `VOICE.md` if you want live two-way calls; until then the widget hides that button.
 - Rule ORDER matters. Submissions and contact are hoisted above roster/services because "what does MEG
   do for artists" and "who are your artists" share vocabulary. There is a regression battery in the
   commit message; re-run it if you touch the regexes.
